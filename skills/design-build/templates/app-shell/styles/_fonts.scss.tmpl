@@ -1,0 +1,57 @@
+// Typography. Claude populates these from the design images during build.
+// Groups reflect distinct text zones seen in the UI; each zone gets a
+// named variable so components reference semantics, not specific fonts.
+//
+// Build-phase protocol (see prompts/prompt_build.md → "Typography mining"):
+//   1. Mine the design images for every distinct text zone (brand wordmark,
+//      nav, hero headline, section titles, card titles, labels, body, data).
+//   2. Propose 2 candidate font stacks per zone (prefer Google Fonts where
+//      a close match exists; always include a generic fallback).
+//   3. Fill in the @import URL(s) below so the chosen fonts actually load.
+//   4. Replace the system-ui defaults with the chosen stacks.
+//   5. Never hardcode font-family elsewhere — components reference $font-*.
+
+// ─── @imports ────────────────────────────────────────────────────────
+// Example:
+//   @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600;700&display=swap");
+// Populated by Claude based on chosen fonts.
+
+// ─── Zone variables ──────────────────────────────────────────────────
+
+// Brand / wordmark — top-nav logo lockups, mastheads.
+$font-brand: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// Display — hero headlines, the largest H1 on the page.
+$font-display: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// Headings — section titles (H2, H3).
+$font-heading: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// Subheadings — smaller section headers (H4, H5), eyebrows, kickers.
+$font-subheading: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// Body — paragraphs, descriptions, long-form text.
+$font-body: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// Labels — buttons, captions, micro-copy, uppercase labels.
+$font-label: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// Data / numeric — prices, dates, stats. Many designs skip this; if the
+// design doesn't use a distinct monospace / numeric face, leave this equal
+// to $font-body so components don't need conditional branching.
+$font-data: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+
+// ─── Weights ─────────────────────────────────────────────────────────
+$weight-thin: 200;
+$weight-light: 300;
+$weight-regular: 400;
+$weight-medium: 500;
+$weight-semibold: 600;
+$weight-bold: 700;
+$weight-black: 900;
+
+// ─── Letter-spacing presets ──────────────────────────────────────────
+$ls-wide:    0.14em;   // uppercase micro-labels, editorial buttons
+$ls-medium:  0.05em;   // small caps, refined labels
+$ls-normal:  0;
+$ls-narrow: -0.01em;   // large display type

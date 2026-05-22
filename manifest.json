@@ -1,0 +1,27 @@
+{
+  "name": "design-and-build-skills",
+  "version": "1.0.0",
+  "description": "Midjourney design image generation and Preact app scaffolding skills.",
+  "type": "skillset",
+  "installAs": "skills",
+  "repository": {
+    "url": "git@github.com:Vendidit/tools.git",
+    "subpath": "packages/design-and-build-skills"
+  },
+  "scripts": {
+    "install": "./install.sh",
+    "update": "./update.sh"
+  },
+  "provides": [
+    {
+      "type": "skill",
+      "name": "designer",
+      "file": "skills/designer/SKILL.md"
+    },
+    {
+      "type": "skill",
+      "name": "design-build",
+      "file": "skills/design-build/SKILL.md"
+    }
+  ]
+}

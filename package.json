@@ -1,0 +1,31 @@
+{
+  "name": "@vendidit/design-and-build-skills",
+  "version": "0.0.1-alpha",
+  "description": "Claude Code skills for generating application designs via Midjourney (Discord) and scaffolding Preact apps from the resulting images.",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vendidit/tools.git",
+    "directory": "packages/design-and-build-skills"
+  },
+  "license": "MIT",
+  "author": "Ryan Weiss <ryan@vendidit.com>",
+  "keywords": [
+    "claude-code",
+    "skill",
+    "midjourney",
+    "discord-bot",
+    "design-to-code",
+    "preact",
+    "scaffold"
+  ],
+  "scripts": {
+    "install-skills": "bash ./install.sh",
+    "install-skills:local": "bash ./install.sh --local .",
+    "install-skills:dry": "bash ./install.sh --dry-run",
+    "uninstall-skills": "bash ./uninstall.sh"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
