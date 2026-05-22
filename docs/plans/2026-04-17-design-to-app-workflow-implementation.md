@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implement the two-skill design-to-app workflow (`designer` + `design-build`) specified in `docs/specs/2026-04-17-design-to-app-workflow-design.md`, plus a bash installer that ships them from the `@vendidit/tools` monorepo into `~/.claude/skills/`.
+**Goal:** Implement the two-skill design-to-app workflow (`designer` + `design-build`) specified in `docs/specs/2026-04-17-design-to-app-workflow-design.md`, plus a bash installer that ships them from the `design-build-skills` monorepo into `~/.claude/skills/`.
 
 **Architecture:**
 
-Two portable Claude Code skills installed as sibling directories under `~/.claude/skills/`. A shared TypeScript library lives in `designer/lib/` and is imported by `design-build` via relative path. The `designer` skill talks to a Discord bot (owned by the user) that triggers Midjourney's `/imagine` slash command, listens for the reply, and downloads + splits the resulting 2×2 grid. The `design-build` skill consumes images plus an optional extra prompt and scaffolds a Preact + TypeScript + SCSS application with a mandatory mock-data layer. Distribution happens via `install.sh` at the package root, which does a shallow + sparse Git checkout of just `packages/design-and-build-skills/` out of `Vendidit/tools`.
+Two portable Claude Code skills installed as sibling directories under `~/.claude/skills/`. A shared TypeScript library lives in `designer/lib/` and is imported by `design-build` via relative path. The `designer` skill talks to a Discord bot (owned by the user) that triggers Midjourney's `/imagine` slash command, listens for the reply, and downloads + splits the resulting 2×2 grid. The `design-build` skill consumes images plus an optional extra prompt and scaffolds a Preact + TypeScript + SCSS application with a mandatory mock-data layer. Distribution happens via `install.sh` at the package root, which does a shallow + sparse Git checkout of just `` out of `rw3iss/design-build-skills`.
 
 **Tech Stack:** TypeScript (run via `tsx`), Node 22+, `discord.js` v14, `sharp` for image operations, `zod` for config/arg schemas, `vitest` for unit tests, bash for the installer.
 
 **Commit strategy:** Work proceeds in three commits at logical phase boundaries — (1) distribution layer, (2) `designer` skill, (3) `design-build` skill — not per-task. The first commit (package scaffolding + spec) has already landed.
 
-**Repo URL:** `https://github.com/Vendidit/tools.git`, package path `packages/design-and-build-skills`.
+**Repo URL:** `https://github.com/rw3iss/design-build-skills.git`, package path `.`.
 
 ---
 
@@ -107,9 +107,9 @@ Two portable Claude Code skills installed as sibling directories under `~/.claud
 ### Task 1: Package boilerplate
 
 **Files:**
-- Create: `packages/design-and-build-skills/VERSION`
-- Create: `packages/design-and-build-skills/.gitignore`
-- Create: `packages/design-and-build-skills/LICENSE`
+- Create: `VERSION`
+- Create: `.gitignore`
+- Create: `LICENSE`
 
 - [ ] **Step 1: Write VERSION**
 
@@ -131,12 +131,12 @@ dist/
 
 - [ ] **Step 3: Write LICENSE (MIT)**
 
-Standard MIT text with copyright `2026 Ryan Weiss / Vendidit`. Copy verbatim from `packages/broken-link-crawler/LICENSE` if present; otherwise use the canonical text at https://opensource.org/license/mit/.
+Standard MIT text with copyright `2026 Ryan Weiss`. Copy verbatim from `packages/broken-link-crawler/LICENSE` if present; otherwise use the canonical text at https://opensource.org/license/mit/.
 
 ### Task 2: install.sh — argument parsing + preflight
 
 **Files:**
-- Create: `packages/design-and-build-skills/install.sh`
+- Create: `install.sh`
 
 - [ ] **Step 1: Write install.sh skeleton with flag parsing**
 
@@ -144,10 +144,10 @@ Standard MIT text with copyright `2026 Ryan Weiss / Vendidit`. Copy verbatim fro
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="${DESIGNER_SKILLS_REPO:-https://github.com/Vendidit/tools.git}"
+REPO_URL="${DESIGNER_SKILLS_REPO:-https://github.com/rw3iss/design-build-skills.git}"
 REPO_REF="${DESIGNER_SKILLS_REF:-main}"
-PACKAGE_PATH="packages/design-and-build-skills"
-CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/vendidit-design-and-build-skills}"
+PACKAGE_PATH="."
+CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/design-build-skills}"
 INSTALL_ROOT="${DESIGNER_SKILLS_INSTALL_ROOT:-$HOME/.claude/skills}"
 
 DRY_RUN=0
@@ -230,8 +230,8 @@ preflight
 - [ ] **Step 3: Make executable and run --help to verify parsing**
 
 ```bash
-chmod +x packages/design-and-build-skills/install.sh
-packages/design-and-build-skills/install.sh --help
+chmod +x install.sh
+install.sh --help
 ```
 
 Expected: prints usage, exits 0. `--dry-run` alone prints `==> preflight checks` and exits 0.
@@ -239,7 +239,7 @@ Expected: prints usage, exits 0. `--dry-run` alone prints `==> preflight checks`
 ### Task 3: install.sh — fetch logic
 
 **Files:**
-- Modify: `packages/design-and-build-skills/install.sh` (append fetch function)
+- Modify: `install.sh` (append fetch function)
 
 - [ ] **Step 1: Add fetch_source function**
 
@@ -285,25 +285,25 @@ log "source ready at: $SOURCE_DIR"
 - [ ] **Step 2: Verify --dry-run prints the clone command**
 
 ```bash
-packages/design-and-build-skills/install.sh --dry-run
+install.sh --dry-run
 ```
 
-Expected: output includes `[dry-run] git clone --depth 1 ...` and `==> source ready at: <cache>/packages/design-and-build-skills`.
+Expected: output includes `[dry-run] git clone --depth 1 ...` and `==> source ready at: <cache>/.`.
 
 - [ ] **Step 3: Verify --local .  resolves correctly**
 
 ```bash
-packages/design-and-build-skills/install.sh --local packages/design-and-build-skills --dry-run
+install.sh --local . --dry-run
 ```
 
-Expected: skips clone, prints `==> using local source: <abs path>/packages/design-and-build-skills`.
+Expected: skips clone, prints `==> using local source: <abs path>/.`.
 
 Note: at this point `skills/` doesn't exist yet so the `die` at the end of `fetch_source` will fire. That's expected — we're only verifying the preflight + fetch branching. We'll satisfy it in Task 8.
 
 ### Task 4: install.sh — copy + deps
 
 **Files:**
-- Modify: `packages/design-and-build-skills/install.sh` (append install_skill function)
+- Modify: `install.sh` (append install_skill function)
 
 - [ ] **Step 1: Add install_skill function**
 
@@ -352,7 +352,7 @@ install_skills
 - [ ] **Step 2: Run dry-run to confirm plan**
 
 ```bash
-packages/design-and-build-skills/install.sh --local packages/design-and-build-skills --dry-run
+install.sh --local . --dry-run
 ```
 
 Expected output ends with `[dry-run] (cd <install-root>/designer && npm ci || npm install)` for both skills. No real FS changes.
@@ -360,7 +360,7 @@ Expected output ends with `[dry-run] (cd <install-root>/designer && npm ci || np
 ### Task 5: install.sh — post-install messaging
 
 **Files:**
-- Modify: `packages/design-and-build-skills/install.sh` (append post_install function)
+- Modify: `install.sh` (append post_install function)
 
 - [ ] **Step 1: Add post_install**
 
@@ -409,8 +409,8 @@ fi
 - [ ] **Step 2: Verify help + dry-run still succeed**
 
 ```bash
-packages/design-and-build-skills/install.sh --help
-packages/design-and-build-skills/install.sh --local packages/design-and-build-skills --dry-run
+install.sh --help
+install.sh --local . --dry-run
 ```
 
 Expected: both exit 0, no stack traces, dry-run output is complete.
@@ -418,7 +418,7 @@ Expected: both exit 0, no stack traces, dry-run output is complete.
 ### Task 6: uninstall.sh
 
 **Files:**
-- Create: `packages/design-and-build-skills/uninstall.sh`
+- Create: `uninstall.sh`
 
 - [ ] **Step 1: Write uninstall.sh**
 
@@ -427,7 +427,7 @@ Expected: both exit 0, no stack traces, dry-run output is complete.
 set -euo pipefail
 
 INSTALL_ROOT="${DESIGNER_SKILLS_INSTALL_ROOT:-$HOME/.claude/skills}"
-CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/vendidit-design-and-build-skills}"
+CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/design-build-skills}"
 CONFIG="$HOME/.config/designer/config.json"
 
 PURGE=0
@@ -478,8 +478,8 @@ log "uninstall complete"
 - [ ] **Step 2: chmod +x and run --help**
 
 ```bash
-chmod +x packages/design-and-build-skills/uninstall.sh
-packages/design-and-build-skills/uninstall.sh --help
+chmod +x uninstall.sh
+uninstall.sh --help
 ```
 
 Expected: prints usage, exits 0.
@@ -487,7 +487,7 @@ Expected: prints usage, exits 0.
 ### Task 7: update.sh shortcut
 
 **Files:**
-- Create: `packages/design-and-build-skills/update.sh`
+- Create: `update.sh`
 
 - [ ] **Step 1: Write update.sh**
 
@@ -499,13 +499,13 @@ exec "$(dirname "$0")/install.sh" --update "$@"
 - [ ] **Step 2: chmod +x**
 
 ```bash
-chmod +x packages/design-and-build-skills/update.sh
+chmod +x update.sh
 ```
 
 ### Task 8: install.sh test harness
 
 **Files:**
-- Create: `packages/design-and-build-skills/tests/install.test.sh`
+- Create: `tests/install.test.sh`
 
 - [ ] **Step 1: Write tests/install.test.sh**
 
@@ -548,8 +548,8 @@ echo "all install-script tests passed"
 - [ ] **Step 2: chmod +x and run**
 
 ```bash
-chmod +x packages/design-and-build-skills/tests/install.test.sh
-packages/design-and-build-skills/tests/install.test.sh
+chmod +x tests/install.test.sh
+tests/install.test.sh
 ```
 
 Expected: 4 PASS lines, exit 0.
@@ -560,19 +560,19 @@ Expected: 4 PASS lines, exit 0.
 
 ```bash
 cd /home/rw3iss/Sites/ven/new/tools/ven-tools
-git add packages/design-and-build-skills/VERSION \
-        packages/design-and-build-skills/.gitignore \
-        packages/design-and-build-skills/LICENSE \
-        packages/design-and-build-skills/install.sh \
-        packages/design-and-build-skills/uninstall.sh \
-        packages/design-and-build-skills/update.sh \
-        packages/design-and-build-skills/tests/
+git add VERSION \
+        .gitignore \
+        LICENSE \
+        install.sh \
+        uninstall.sh \
+        update.sh \
+        tests/
 
 git commit -m "$(cat <<'EOF'
 feat(design-and-build-skills): add distribution layer
 
-- install.sh with shallow+sparse clone of packages/design-and-build-skills
-  out of Vendidit/tools, idempotent re-install, --update/--ref/--skill/
+- install.sh with shallow+sparse clone of .
+  out of rw3iss/design-build-skills, idempotent re-install, --update/--ref/--skill/
   --local/--dry-run flags, config-preserving behavior
 - uninstall.sh with --purge cache flag and interactive config removal
 - update.sh shortcut aliasing install.sh --update
@@ -593,9 +593,9 @@ EOF
 ### Task 10: designer package + tsconfig + vitest
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/package.json`
-- Create: `packages/design-and-build-skills/skills/designer/tsconfig.json`
-- Create: `packages/design-and-build-skills/skills/designer/vitest.config.ts`
+- Create: `skills/designer/package.json`
+- Create: `skills/designer/tsconfig.json`
+- Create: `skills/designer/vitest.config.ts`
 
 - [ ] **Step 1: Write package.json**
 
@@ -663,7 +663,7 @@ export default defineConfig({
 - [ ] **Step 4: Run npm install**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npm install
+cd skills/designer && npm install
 ```
 
 Expected: `package-lock.json` created, `node_modules/` populated, no errors.
@@ -671,8 +671,8 @@ Expected: `package-lock.json` created, `node_modules/` populated, no errors.
 ### Task 11: lib/storage.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/storage.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/storage.test.ts`
+- Create: `skills/designer/lib/storage.ts`
+- Create: `skills/designer/lib/storage.test.ts`
 
 - [ ] **Step 1: Write failing test**
 
@@ -708,7 +708,7 @@ describe("requestPaths", () => {
 - [ ] **Step 2: Run test, verify failure**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npx vitest run lib/storage.test.ts
+cd skills/designer && npx vitest run lib/storage.test.ts
 ```
 
 Expected: FAIL with "Cannot find module './storage.ts'".
@@ -768,8 +768,8 @@ Expected: 2 passing suites, 5 tests.
 ### Task 12: lib/config.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/config.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/config.test.ts`
+- Create: `skills/designer/lib/config.ts`
+- Create: `skills/designer/lib/config.test.ts`
 
 - [ ] **Step 1: Write failing test**
 
@@ -935,8 +935,8 @@ Expected: 3 passing tests.
 ### Task 13: lib/prompt_prep.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/prompt_prep.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/prompt_prep.test.ts`
+- Create: `skills/designer/lib/prompt_prep.ts`
+- Create: `skills/designer/lib/prompt_prep.test.ts`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -1096,8 +1096,8 @@ Expected: 6 passing tests.
 ### Task 14: lib/midjourney.ts (button parsing)
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/midjourney.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/midjourney.test.ts`
+- Create: `skills/designer/lib/midjourney.ts`
+- Create: `skills/designer/lib/midjourney.test.ts`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -1220,7 +1220,7 @@ Expected: 5 passing tests.
 ### Task 15: lib/discord_client.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/discord_client.ts`
+- Create: `skills/designer/lib/discord_client.ts`
 
 No unit tests — this is pure network I/O. Verified via `setup_check.ts` in Task 16.
 
@@ -1315,7 +1315,7 @@ export async function downloadAttachment(url: string, destPath: string): Promise
 - [ ] **Step 2: Install undici**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npm install undici
+cd skills/designer && npm install undici
 ```
 
 - [ ] **Step 3: Typecheck**
@@ -1329,7 +1329,7 @@ Expected: no errors.
 ### Task 15a: lib/triggers/Trigger.ts (interface)
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/triggers/Trigger.ts`
+- Create: `skills/designer/lib/triggers/Trigger.ts`
 
 - [ ] **Step 1: Write the interface**
 
@@ -1368,8 +1368,8 @@ export interface Trigger {
 ### Task 15b: lib/triggers/ManualTrigger.ts + tests
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/triggers/ManualTrigger.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/triggers/ManualTrigger.test.ts`
+- Create: `skills/designer/lib/triggers/ManualTrigger.ts`
+- Create: `skills/designer/lib/triggers/ManualTrigger.test.ts`
 
 - [ ] **Step 1: Write failing test**
 
@@ -1411,7 +1411,7 @@ describe("ManualTrigger", () => {
 - [ ] **Step 2: Run, verify failure**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer
+cd skills/designer
 npx vitest run lib/triggers/ManualTrigger.test.ts
 ```
 
@@ -1463,9 +1463,9 @@ Expected: 3 passing tests.
 ### Task 15c: lib/triggers/UserTokenTrigger.ts + index.ts + tests
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/lib/triggers/UserTokenTrigger.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/triggers/UserTokenTrigger.test.ts`
-- Create: `packages/design-and-build-skills/skills/designer/lib/triggers/index.ts`
+- Create: `skills/designer/lib/triggers/UserTokenTrigger.ts`
+- Create: `skills/designer/lib/triggers/UserTokenTrigger.test.ts`
+- Create: `skills/designer/lib/triggers/index.ts`
 
 - [ ] **Step 1: Write failing tests (pure body builders, no network)**
 
@@ -1652,7 +1652,7 @@ Expected: all trigger tests pass.
 ### Task 16: scripts/setup_check.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/scripts/setup_check.ts`
+- Create: `skills/designer/scripts/setup_check.ts`
 
 No unit test — live Discord interaction. Manual verification at end of task.
 
@@ -1778,7 +1778,7 @@ main().catch((err) => {
 - [ ] **Step 2: Typecheck**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npx tsc --noEmit
+cd skills/designer && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -1790,16 +1790,16 @@ Running against live Discord is out of scope for the implementation task; the us
 ### Task 17: scripts/split_grid.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/scripts/split_grid.ts`
-- Create: `packages/design-and-build-skills/skills/designer/scripts/split_grid.test.ts`
-- Create: `packages/design-and-build-skills/skills/designer/scripts/fixtures/grid-512.png` (test fixture — 512×512 solid-color quadrants)
+- Create: `skills/designer/scripts/split_grid.ts`
+- Create: `skills/designer/scripts/split_grid.test.ts`
+- Create: `skills/designer/scripts/fixtures/grid-512.png` (test fixture — 512×512 solid-color quadrants)
 
 - [ ] **Step 1: Generate fixture PNG**
 
 Create a 512×512 PNG with four solid-color 256×256 quadrants (red TL, green TR, blue BL, yellow BR) using a small one-off script:
 
 ```bash
-cd packages/design-and-build-skills/skills/designer
+cd skills/designer
 mkdir -p scripts/fixtures
 node -e '
 const sharp = require("sharp");
@@ -1925,7 +1925,7 @@ Expected: 1 passing test.
 ### Task 18: scripts/mj_bot.ts (generate)
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/scripts/mj_bot.ts`
+- Create: `skills/designer/scripts/mj_bot.ts`
 
 Cannot be unit-tested without Discord. Typecheck + manual verification only.
 
@@ -2038,7 +2038,7 @@ main().catch((err) => {
 - [ ] **Step 2: Typecheck**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npx tsc --noEmit
+cd skills/designer && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -2046,7 +2046,7 @@ Expected: no errors.
 ### Task 19: scripts/upscale.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/scripts/upscale.ts`
+- Create: `skills/designer/scripts/upscale.ts`
 
 - [ ] **Step 1: Write upscale.ts**
 
@@ -2137,7 +2137,7 @@ main().catch((err) => {
 - [ ] **Step 2: Typecheck**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npx tsc --noEmit
+cd skills/designer && npx tsc --noEmit
 ```
 
 Expected: no errors.
@@ -2145,8 +2145,8 @@ Expected: no errors.
 ### Task 20: scripts/prepare_prompt.ts + scripts/process_raw.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/scripts/prepare_prompt.ts`
-- Create: `packages/design-and-build-skills/skills/designer/scripts/process_raw.ts`
+- Create: `skills/designer/scripts/prepare_prompt.ts`
+- Create: `skills/designer/scripts/process_raw.ts`
 
 - [ ] **Step 1: Write prepare_prompt.ts**
 
@@ -2252,14 +2252,14 @@ main().catch((err) => {
 - [ ] **Step 3: Typecheck**
 
 ```bash
-cd packages/design-and-build-skills/skills/designer && npx tsc --noEmit
+cd skills/designer && npx tsc --noEmit
 ```
 
 ### Task 21: designer/SKILL.md + README
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/designer/SKILL.md`
-- Create: `packages/design-and-build-skills/skills/designer/README.md`
+- Create: `skills/designer/SKILL.md`
+- Create: `skills/designer/README.md`
 
 - [ ] **Step 1: Write SKILL.md**
 
@@ -2313,7 +2313,7 @@ If the bot can't talk to Discord, run with the prompt text printed for the user 
 ```markdown
 # designer (Claude Code skill)
 
-Design image generation via Midjourney through a user-owned Discord bot. Installed into `~/.claude/skills/designer/` by the @vendidit/design-and-build-skills installer.
+Design image generation via Midjourney through a user-owned Discord bot. Installed into `~/.claude/skills/designer/` by the design-build-skills installer.
 
 ## Setup (once)
 
@@ -2340,7 +2340,7 @@ Unit tests cover the pure code (storage, config, prompt prep, grid splitting, bu
 
 ```bash
 cd /home/rw3iss/Sites/ven/new/tools/ven-tools
-git add packages/design-and-build-skills/skills/designer/
+git add skills/designer/
 
 git commit -m "$(cat <<'EOF'
 feat(design-and-build-skills): implement designer skill
@@ -2374,10 +2374,10 @@ EOF
 ### Task 23: design-build package + tsconfig + vitest + shared.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/design-build/package.json`
-- Create: `packages/design-and-build-skills/skills/design-build/tsconfig.json`
-- Create: `packages/design-and-build-skills/skills/design-build/vitest.config.ts`
-- Create: `packages/design-and-build-skills/skills/design-build/shared.ts`
+- Create: `skills/design-build/package.json`
+- Create: `skills/design-build/tsconfig.json`
+- Create: `skills/design-build/vitest.config.ts`
+- Create: `skills/design-build/shared.ts`
 
 - [ ] **Step 1: Write package.json**
 
@@ -2448,7 +2448,7 @@ const designerLib = resolve(here, "..", "designer", "lib");
 if (!existsSync(designerLib)) {
   throw new Error(
     `design-build depends on the designer skill. Expected sibling at ${designerLib}. ` +
-    `Install both via the install.sh in @vendidit/design-and-build-skills.`
+    `Install both via the install.sh in design-build-skills.`
   );
 }
 
@@ -2461,14 +2461,14 @@ Note: the `findDesignMd` signature needs to accept a filename param (already doe
 - [ ] **Step 5: npm install**
 
 ```bash
-cd packages/design-and-build-skills/skills/design-build && npm install
+cd skills/design-build && npm install
 ```
 
 ### Task 24: scripts/select_images.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/design-build/scripts/select_images.ts`
-- Create: `packages/design-and-build-skills/skills/design-build/scripts/select_images.test.ts`
+- Create: `skills/design-build/scripts/select_images.ts`
+- Create: `skills/design-build/scripts/select_images.test.ts`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -2520,7 +2520,7 @@ describe("resolveSelection", () => {
 - [ ] **Step 2: Run, verify failure**
 
 ```bash
-cd packages/design-and-build-skills/skills/design-build && npx vitest run scripts/select_images.test.ts
+cd skills/design-build && npx vitest run scripts/select_images.test.ts
 ```
 
 - [ ] **Step 3: Write select_images.ts**
@@ -2560,8 +2560,8 @@ Expected: 4 passing tests.
 ### Task 25: scripts/build_plan.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/design-build/scripts/build_plan.ts`
-- Create: `packages/design-and-build-skills/skills/design-build/scripts/build_plan.test.ts`
+- Create: `skills/design-build/scripts/build_plan.ts`
+- Create: `skills/design-build/scripts/build_plan.test.ts`
 
 - [ ] **Step 1: Write failing test**
 
@@ -2715,7 +2715,7 @@ Expected: 2 passing tests.
 
 ### Task 26: Template files
 
-**Files (all under `packages/design-and-build-skills/skills/design-build/templates/app-shell/`):**
+**Files (all under `skills/design-build/templates/app-shell/`):**
 - `package.json.tmpl`
 - `vite.config.ts.tmpl`
 - `tsconfig.json.tmpl`
@@ -2972,15 +2972,15 @@ a { color: $color-primary; }
 - [ ] **Step 15: Create .gitkeep for mock/data**
 
 ```bash
-mkdir -p packages/design-and-build-skills/skills/design-build/templates/app-shell/src/mock/data
-touch packages/design-and-build-skills/skills/design-build/templates/app-shell/src/mock/data/.gitkeep
+mkdir -p skills/design-build/templates/app-shell/src/mock/data
+touch skills/design-build/templates/app-shell/src/mock/data/.gitkeep
 ```
 
 ### Task 27: scripts/scaffold_preact.ts
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/design-build/scripts/scaffold_preact.ts`
-- Create: `packages/design-and-build-skills/skills/design-build/scripts/scaffold_preact.test.ts`
+- Create: `skills/design-build/scripts/scaffold_preact.ts`
+- Create: `skills/design-build/scripts/scaffold_preact.test.ts`
 
 - [ ] **Step 1: Write failing test**
 
@@ -3084,8 +3084,8 @@ Expected: 1 passing test.
 ### Task 28: design-build SKILL.md + README
 
 **Files:**
-- Create: `packages/design-and-build-skills/skills/design-build/SKILL.md`
-- Create: `packages/design-and-build-skills/skills/design-build/README.md`
+- Create: `skills/design-build/SKILL.md`
+- Create: `skills/design-build/README.md`
 
 - [ ] **Step 1: Write SKILL.md**
 
@@ -3125,7 +3125,7 @@ Every scaffolded app exposes `src/services/api/ApiClient.ts` (an interface) and 
 ```markdown
 # design-build (Claude Code skill)
 
-Scaffolds a Preact + TypeScript + SCSS app from a folder of design images. Installed by the @vendidit/design-and-build-skills installer.
+Scaffolds a Preact + TypeScript + SCSS app from a folder of design images. Installed by the design-build-skills installer.
 
 ## Depends on
 
@@ -3158,8 +3158,8 @@ npm test
 - [ ] **Step 1: Full typecheck both skills**
 
 ```bash
-(cd packages/design-and-build-skills/skills/designer && npx tsc --noEmit) \
-  && (cd packages/design-and-build-skills/skills/design-build && npx tsc --noEmit)
+(cd skills/designer && npx tsc --noEmit) \
+  && (cd skills/design-build && npx tsc --noEmit)
 ```
 
 Expected: no errors from either.
@@ -3167,8 +3167,8 @@ Expected: no errors from either.
 - [ ] **Step 2: Run all tests**
 
 ```bash
-(cd packages/design-and-build-skills/skills/designer && npm test) \
-  && (cd packages/design-and-build-skills/skills/design-build && npm test)
+(cd skills/designer && npm test) \
+  && (cd skills/design-build && npm test)
 ```
 
 Expected: all green.
@@ -3176,7 +3176,7 @@ Expected: all green.
 - [ ] **Step 3: Run install-script tests**
 
 ```bash
-packages/design-and-build-skills/tests/install.test.sh
+tests/install.test.sh
 ```
 
 Expected: 4 PASS lines.
@@ -3184,7 +3184,7 @@ Expected: 4 PASS lines.
 - [ ] **Step 4: End-to-end dry install**
 
 ```bash
-packages/design-and-build-skills/install.sh --local packages/design-and-build-skills --dry-run
+install.sh --local . --dry-run
 ```
 
 Expected: preflight OK, source resolved to the package root, two skills planned for install.
@@ -3195,7 +3195,7 @@ Expected: preflight OK, source resolved to the package root, two skills planned 
 
 ```bash
 cd /home/rw3iss/Sites/ven/new/tools/ven-tools
-git add packages/design-and-build-skills/skills/design-build/
+git add skills/design-build/
 ```
 
 - [ ] **Step 2: Run monorepo-level `npm install` to register the new workspace**

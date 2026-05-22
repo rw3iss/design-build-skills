@@ -1,6 +1,6 @@
 # designer (Claude Code skill)
 
-Design image generation via Midjourney through a user-owned Discord bot. Installed into `~/.claude/skills/designer/` by the `@vendidit/design-and-build-skills` installer.
+Design image generation via Midjourney through a user-owned Discord bot. Installed into `~/.claude/skills/designer/` by the `design-build-skills` installer.
 
 ## Setup (once)
 

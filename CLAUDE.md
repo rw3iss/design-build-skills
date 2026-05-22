@@ -1,6 +1,6 @@
-# CLAUDE.md — @vendidit/design-and-build-skills
+# CLAUDE.md — design-build-skills
 
-Context file for resuming work on this package. Read this first before doing anything else.
+Context file for resuming work on this repo. Read this first before doing anything else.
 
 ---
 
@@ -30,7 +30,7 @@ The two skills are distributed together via a bash installer (`install.sh`) that
 ## Key architectural decisions already made (don't re-litigate)
 
 - **Two skills, not one**, both under `~/.claude/skills/`. Shared lib in `designer/lib/` imported by `design-build` via a relative path.
-- **TypeScript, not Python**, for the bot and all scripts (runs via `tsx`). Consistent with the rest of the Vendidit stack.
+- **TypeScript, not Python**, for the bot and all scripts (runs via `tsx`).
 - **Ephemeral bot**, not always-on. Each operation spawns a fresh `mj_bot.ts` process that connects, runs one command, exits. Future upgrade path to `--persist` is noted but out of scope for v1.
 - **Discord bot uses slash-command interactions** to trigger Midjourney's `/imagine` (legit — bot-to-bot interactions are supported by Discord's API since 2022). No self-bot.
 - **Image granularity default = 2×2 grid split into 4 quadrants** via `sharp`. Upscales via U1–U4 clicks are opt-in with `--hifi` or as a separate `designer upscale` subcommand.
@@ -39,7 +39,7 @@ The two skills are distributed together via a bash installer (`install.sh`) that
 - **Mock-data layer is mandatory** on every generated app. `src/mock/data/*.json` fixtures + `src/mock/MockApiAdapter.ts` implements `src/services/api/ApiClient.ts`. Single injection point at `src/services/api/index.ts` for swap-out to a real `HttpApiAdapter`.
 - **Division of labor for the build scaffold**: `scaffold_preact.ts` writes only the deterministic parts (config, entry points, styles framework, empty service/mock shells). Component bodies + fixtures are written by Claude *after* scaffold lands.
 - **Directory layout final**: flat `designs/<request-name>/{prompts,raw,images,app}/`. No `generated/` wrapper.
-- **Distribution = inside `Vendidit/tools` monorepo**, not a standalone repo. `install.sh` does a shallow + sparse clone scoped to `packages/design-and-build-skills/`, so users never fetch the rest of the monorepo. Tags use `design-and-build-skills-vX.Y.Z` to avoid collision with other packages.
+- **Distribution = standalone repo** at `github.com/rw3iss/design-build-skills`. `install.sh` does a shallow clone of the repo into `~/.cache/design-build-skills/` then rsyncs the skill subdirs into `~/.claude/skills/`. Tags use `vX.Y.Z`.
 
 ---
 
@@ -78,11 +78,6 @@ The two skills are distributed together via a bash installer (`install.sh`) that
 
 ---
 
-## Parent context
+## Repository
 
-This package lives in `@vendidit/tools` (npm workspaces monorepo). Parent-level docs:
-
-- [`../../README.md`](../../README.md) — monorepo overview with the package table
-- [`../../package.json`](../../package.json) — workspace root
-
-For broader Vendidit platform context, see `/home/rw3iss/Sites/ven/CLAUDE.md`.
+Standalone repo: https://github.com/rw3iss/design-build-skills

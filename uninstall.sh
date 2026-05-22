@@ -2,7 +2,7 @@
 set -euo pipefail
 
 INSTALL_ROOT="${DESIGNER_SKILLS_INSTALL_ROOT:-$HOME/.claude/skills}"
-CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/vendidit-design-and-build-skills}"
+CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/design-build-skills}"
 CONFIG="$HOME/.config/designer/config.json"
 
 PURGE=0

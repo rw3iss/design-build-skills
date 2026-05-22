@@ -68,7 +68,7 @@ function checkToolsOnly(): void { // sync — no async ops needed
   if (!ok) {
     console.error(`
   One or more checks failed. Re-run the installer:
-    curl -fsSL https://raw.githubusercontent.com/Vendidit/tools/main/packages/design-and-build-skills/install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/install.sh | bash
 `);
     process.exit(1);
   }

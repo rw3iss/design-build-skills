@@ -1,6 +1,6 @@
 # design-build (Claude Code skill)
 
-Scaffolds a Preact + TypeScript + SCSS app from a set of design images. The images can come from any source — no prior `designer` skill run is required. Installed by the `@vendidit/design-and-build-skills` installer.
+Scaffolds a Preact + TypeScript + SCSS app from a set of design images. The images can come from any source — no prior `designer` skill run is required. Installed by the `design-build-skills` installer.
 
 ---
 

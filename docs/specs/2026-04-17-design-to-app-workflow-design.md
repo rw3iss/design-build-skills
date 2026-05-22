@@ -1,7 +1,7 @@
 # Design-to-App Workflow — Spec
 
 **Date:** 2026-04-17
-**Author:** ryan@vendidit.com
+**Author:** rw3iss@gmail.com
 **Status:** Draft — pending review
 
 ## Purpose
@@ -244,12 +244,12 @@ user follow-up → design-build CLI (imagesArg, extraPrompt)
 
 ## Installation & distribution
 
-Both skills, their shared library, their `package.json`s, and their templates live inside the `@vendidit/tools` monorepo at `packages/design-and-build-skills/`. An `install.sh` at the *package* root handles copying the skill subtrees into `~/.claude/skills/` and bootstrapping npm dependencies. Users never need to clone or install the rest of the monorepo — the installer uses a shallow + sparse Git checkout to pull only the package path.
+Both skills, their shared library, their `package.json`s, and their templates live inside the `design-build-skills` monorepo at ``. An `install.sh` at the *package* root handles copying the skill subtrees into `~/.claude/skills/` and bootstrapping npm dependencies. Users never need to clone or install the rest of the monorepo — the installer uses a shallow + sparse Git checkout to pull only the package path.
 
-### Repository layout (inside `Vendidit/tools`)
+### Repository layout (inside `rw3iss/design-build-skills`)
 
 ```
-Vendidit/tools/ (GitHub repo)
+rw3iss/design-build-skills/ (GitHub repo)
   … other packages …
   packages/
     design-and-build-skills/             (this package)
@@ -273,9 +273,9 @@ Vendidit/tools/ (GitHub repo)
 
 Repo URL + package path are recorded in the installer as three constants near the top:
 ```bash
-REPO_URL="${DESIGNER_SKILLS_REPO:-https://github.com/Vendidit/tools.git}"
+REPO_URL="${DESIGNER_SKILLS_REPO:-https://github.com/rw3iss/design-build-skills.git}"
 REPO_REF="${DESIGNER_SKILLS_REF:-main}"
-PACKAGE_PATH="packages/design-and-build-skills"
+PACKAGE_PATH="."
 ```
 All three overridable via env vars for forks / private mirrors / pinned releases.
 
@@ -286,7 +286,7 @@ All three overridable via env vars for forks / private mirrors / pinned releases
 Steps the script performs:
 
 1. **Preflight.** Verify `git` (≥2.25, for sparse-checkout), `node` (≥22), `npm`, `rsync` present. Fail fast with actionable messages.
-2. **Fetch source.** Shallow + sparse clone of `REPO_URL` at `REPO_REF` into `~/.cache/vendidit-design-and-build-skills/`, scoped to `PACKAGE_PATH`. On re-run, does `git -C ... fetch && git -C ... checkout <ref>` instead of re-cloning. Concretely:
+2. **Fetch source.** Shallow + sparse clone of `REPO_URL` at `REPO_REF` into `~/.cache/design-build-skills/`, scoped to `PACKAGE_PATH`. On re-run, does `git -C ... fetch && git -C ... checkout <ref>` instead of re-cloning. Concretely:
    ```bash
    git clone --depth 1 --filter=blob:none --sparse --branch "$REPO_REF" "$REPO_URL" "$CACHE"
    git -C "$CACHE" sparse-checkout set "$PACKAGE_PATH"
@@ -304,26 +304,26 @@ Steps the script performs:
 - `--update` — same as normal run, but refuses to proceed if the cache has uncommitted changes (helps when users have been hand-editing the cache for development).
 - `--ref <sha|tag|branch>` — pin to a specific revision; overrides `REPO_REF`.
 - `--skill <designer|design-build>` — install or update just one skill, skip the other.
-- `--local <path>` — skip the clone and copy from a local path. The path may be either the package root (contains `install.sh`) or the monorepo root (contains `packages/design-and-build-skills/`); the script auto-detects.
+- `--local <path>` — skip the clone and copy from a local path. The path may be either the package root (contains `install.sh`) or the monorepo root (contains ``); the script auto-detects.
 - `--dry-run` — print what would happen, don't touch anything.
 
 **Invocation patterns supported:**
 
 ```bash
 # One-liner: fetch install.sh straight from the package path in the monorepo and pipe to bash
-curl -fsSL https://raw.githubusercontent.com/Vendidit/tools/main/packages/design-and-build-skills/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/install.sh | bash
 
 # Explicit clone of just this package (sparse), for users who want to read the script first
-git clone --depth 1 --filter=blob:none --sparse https://github.com/Vendidit/tools.git
-cd tools && git sparse-checkout set packages/design-and-build-skills
-cd packages/design-and-build-skills && ./install.sh
+git clone --depth 1 --filter=blob:none --sparse https://github.com/rw3iss/design-build-skills.git
+cd tools && git sparse-checkout set .
+cd . && ./install.sh
 
 # Full clone (simpler, heavier — fine for dev)
-git clone https://github.com/Vendidit/tools.git
-cd tools/packages/design-and-build-skills && ./install.sh
+git clone https://github.com/rw3iss/design-build-skills.git
+cd tools/. && ./install.sh
 
 # Developing the skills themselves against your local working copy
-cd <wherever>/tools/packages/design-and-build-skills
+cd <wherever>/tools/.
 ./install.sh --local .
 
 # Pin a release
@@ -332,7 +332,7 @@ cd <wherever>/tools/packages/design-and-build-skills
 
 ### `uninstall.sh` behavior
 
-Removes `~/.claude/skills/designer/` and `~/.claude/skills/design-build/`. Asks before removing `~/.config/designer/config.json` (never silently drops credentials). Does NOT remove `~/.cache/vendidit-design-and-build-skills/` unless `--purge` is passed.
+Removes `~/.claude/skills/designer/` and `~/.claude/skills/design-build/`. Asks before removing `~/.config/designer/config.json` (never silently drops credentials). Does NOT remove `~/.cache/design-build-skills/` unless `--purge` is passed.
 
 ### Update path
 
@@ -341,7 +341,7 @@ Removes `~/.claude/skills/designer/` and `~/.claude/skills/design-build/`. Asks 
 
 ### Versioning
 
-Tags follow the monorepo's per-package convention `design-and-build-skills-vX.Y.Z` (so tags from other packages in `Vendidit/tools` don't collide). The package root contains a `VERSION` file; `install.sh` copies it into each installed skill directory so `setup_check.ts` can report the installed version and a future update nag can compare against the remote.
+Tags follow the monorepo's per-package convention `design-and-build-skills-vX.Y.Z` (so tags from other packages in `rw3iss/design-build-skills` don't collide). The package root contains a `VERSION` file; `install.sh` copies it into each installed skill directory so `setup_check.ts` can report the installed version and a future update nag can compare against the remote.
 
 ### From-a-chat install
 

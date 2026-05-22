@@ -5,8 +5,7 @@
   "type": "skillset",
   "installAs": "skills",
   "repository": {
-    "url": "git@github.com:Vendidit/tools.git",
-    "subpath": "packages/design-and-build-skills"
+    "url": "git@github.com:rw3iss/design-build-skills.git"
   },
   "scripts": {
     "install": "./install.sh",

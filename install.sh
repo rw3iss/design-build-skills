@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_URL="${DESIGNER_SKILLS_REPO:-git@github.com:Vendidit/tools.git}"
+REPO_URL="${DESIGNER_SKILLS_REPO:-git@github.com:rw3iss/design-build-skills.git}"
 REPO_REF="${DESIGNER_SKILLS_REF:-main}"
-PACKAGE_PATH="packages/design-and-build-skills"
-CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/vendidit-design-and-build-skills}"
+CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/design-build-skills}"
 INSTALL_ROOT="${DESIGNER_SKILLS_INSTALL_ROOT:-$HOME/.claude/skills}"
 
 DRY_RUN=0
@@ -85,10 +84,8 @@ fetch_source() {
     abs=$(cd "$LOCAL_PATH" && pwd)
     if [[ -f "$abs/install.sh" && -d "$abs/skills" ]]; then
       SOURCE_DIR="$abs"
-    elif [[ -d "$abs/$PACKAGE_PATH/skills" ]]; then
-      SOURCE_DIR="$abs/$PACKAGE_PATH"
     else
-      die "--local $LOCAL_PATH does not look like the package root or monorepo root"
+      die "--local $LOCAL_PATH does not look like the repo root (missing install.sh or skills/)"
     fi
     log "using local source: $SOURCE_DIR"
     return
@@ -104,11 +101,10 @@ fetch_source() {
       log "cache already present at $CACHE_DIR (use --update to refresh)"
     fi
   else
-    log "cloning (sparse) $REPO_URL @ $REPO_REF into $CACHE_DIR"
-    run "git clone --depth 1 --filter=blob:none --sparse --branch '$REPO_REF' '$REPO_URL' '$CACHE_DIR'"
-    run "git -C '$CACHE_DIR' sparse-checkout set '$PACKAGE_PATH'"
+    log "cloning $REPO_URL @ $REPO_REF into $CACHE_DIR"
+    run "git clone --depth 1 --branch '$REPO_REF' '$REPO_URL' '$CACHE_DIR'"
   fi
-  SOURCE_DIR="$CACHE_DIR/$PACKAGE_PATH"
+  SOURCE_DIR="$CACHE_DIR"
   if [[ $DRY_RUN -eq 0 ]]; then
     [[ -d "$SOURCE_DIR/skills" ]] || die "source missing $SOURCE_DIR/skills after fetch"
   fi

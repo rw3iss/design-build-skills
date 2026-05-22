@@ -1,4 +1,4 @@
-# @vendidit/design-and-build-skills
+# design-build-skills
 
 Two Claude Code skills that work together to turn a design brief into a working Preact app:
 
@@ -11,26 +11,21 @@ Status: **implemented, v0.0.1-alpha.** Design doc: [`docs/specs/2026-04-17-desig
 
 ## Install
 
-This repo is private, so `raw.githubusercontent.com` URLs won't work without a token. Two options — pick whichever applies:
-
-### Option A — GitHub CLI (`gh`)
-
-If you have the [GitHub CLI](https://cli.github.com/) installed and authenticated (`gh auth login`), this is the cleanest one-liner:
+### Option A — One-liner (curl)
 
 ```bash
-gh api repos/Vendidit/tools/contents/packages/design-and-build-skills/install.sh \
-  --jq '.content' | base64 -d | bash
+curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/install.sh | bash
 ```
-
-The script downloads itself, does a sparse SSH clone of only this package into a local cache, copies the skill files into `~/.claude/skills/`, and runs `npm install`. Nothing else is needed on your machine beyond Node ≥22, git, npm, and rsync.
 
 ### Option B — Clone the repo first
 
 ```bash
-git clone git@github.com:Vendidit/tools.git
-cd tools/packages/design-and-build-skills
+git clone git@github.com:rw3iss/design-build-skills.git
+cd design-build-skills
 ./install.sh
 ```
+
+The script clones this repo into a local cache, copies the skill files into `~/.claude/skills/`, and runs `npm install`. Nothing else is needed on your machine beyond Node ≥22, git, npm, and rsync.
 
 ---
 
@@ -42,22 +37,21 @@ The Discord setup below is only needed if you also want the **`designer`** skill
 
 ## Updating
 
-The first install leaves a cache at `~/.cache/vendidit-design-and-build-skills`. After that you never need the repo again:
+The first install leaves a cache at `~/.cache/design-build-skills`. After that you never need to clone again:
 
 ```bash
-# No repo, no clone — uses the cached installer + SSH automatically
-~/.cache/vendidit-design-and-build-skills/packages/design-and-build-skills/install.sh --update
+# Uses the cached installer
+~/.cache/design-build-skills/install.sh --update
 
-# Or via gh CLI (same as initial install one-liner, just add --update)
-gh api repos/Vendidit/tools/contents/packages/design-and-build-skills/install.sh \
-  --jq '.content' | base64 -d | bash -s -- --update
+# Or via curl (same as initial install one-liner, just add --update)
+curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/install.sh | bash -s -- --update
 
 # Update a single skill only
-~/.cache/vendidit-design-and-build-skills/packages/design-and-build-skills/install.sh --update --skill design-build
-~/.cache/vendidit-design-and-build-skills/packages/design-and-build-skills/install.sh --update --skill designer
+~/.cache/design-build-skills/install.sh --update --skill design-build
+~/.cache/design-build-skills/install.sh --update --skill designer
 ```
 
-`--update` does a shallow re-fetch via SSH, re-rsync's both skill directories, and reruns `npm ci`. Your `~/.config/designer/config.json` is never modified.
+`--update` does a shallow re-fetch, re-rsync's both skill directories, and reruns `npm ci`. Your `~/.config/designer/config.json` is never modified.
 
 ---
 
@@ -134,17 +128,9 @@ Config is saved to `~/.config/designer/config.json`. Env overrides: `DESIGNER_DI
 
 ---
 
-## Monorepo position
-
-This package lives inside [`@vendidit/tools`](../../) as a sibling of `broken-link-crawler` and `test-tools`. It does not publish to a registry — the skills ship via `install.sh` which copies them into `~/.claude/skills/`.
-
----
-
 ## Contributing / development
 
 ```bash
-cd packages/design-and-build-skills
-
 # Install the skills from your local working copy (not from GitHub)
 ./install.sh --local .
 

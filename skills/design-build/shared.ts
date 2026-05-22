@@ -11,7 +11,7 @@ const designerLib = resolve(here, "..", "designer", "lib");
 if (!existsSync(designerLib)) {
   throw new Error(
     `design-build requires the designer skill's shared utilities at ${designerLib}. ` +
-    `Install both via the install.sh in @vendidit/design-and-build-skills. ` +
+    `Install both via the install.sh in design-build-skills. ` +
     `Note: you do not need to run the designer workflow — only the shared library is needed.`
   );
 }
