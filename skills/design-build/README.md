@@ -120,6 +120,16 @@ See [`SKILL.md`](./SKILL.md) for the exact argument shapes.
 
 ---
 
+## Updating
+
+From inside Claude Code, just run **`/build update`** — it runs the installer's
+`--update` to refresh both skills *and* the `/design` + `/build` commands. No restart
+needed: Claude Code hot-reloads skills and commands from disk. Equivalent on the CLI:
+`~/.cache/design-build-skills/install.sh --update` (or `npm run update` from a clone).
+See the [repo README](../../README.md#updating) for all methods.
+
+---
+
 ## Running tests
 
 ```bash

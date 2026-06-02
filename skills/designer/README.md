@@ -26,6 +26,12 @@ Config is stored at `~/.config/designer/config.json`. Env-var overrides:
 - **manual** (default): Bot only listens. When you run `mj_bot.ts generate`, it prints the `/imagine <prompt>` line for you to paste into Discord. Then it detects Midjourney's reply, downloads the grid, splits into four images, and exits. Completely ToS-safe.
 - **user-token**: Bot POSTs directly to Discord's interactions endpoint using your user token. Fully automated — no paste required. Using a user token programmatically is explicitly prohibited by Discord's Terms of Service and can result in your personal Discord account being banned. Opt-in only via `setup_check`, with explicit acknowledgment.
 
+## Updating
+
+From inside Claude Code, run **`/build update`** to refresh both skills (`designer` +
+`design-build`) and the `/design` + `/build` commands to the latest — no restart
+needed. Equivalent on the CLI: `~/.cache/design-build-skills/install.sh --update`.
+
 ## Running tests
 
 ```bash

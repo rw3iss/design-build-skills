@@ -44,16 +44,24 @@ The Discord setup below is only needed if you also want the **`designer`** skill
 
 ## Updating
 
-The first install leaves a cache at `~/.cache/design-build-skills`. After that you never need to clone again:
+**Easiest — from inside Claude Code, just type:**
+
+```
+/build update
+```
+
+That runs the installer's `--update` for you: it re-fetches the latest skills into `~/.claude/skills/`, refreshes the `/design` and `/build` commands, and — because Claude Code hot-reloads skills and commands from disk — takes effect **without restarting** your session.
+
+Equivalent command-line methods (all run `install.sh --update`):
 
 ```bash
-# From a clone of this repo — fetches the latest and reinstalls
+# From a clone of this repo
 npm run update
 
-# Uses the cached installer
+# Cached installer (no clone needed after the first install)
 ~/.cache/design-build-skills/install.sh --update
 
-# Or via curl (same as initial install one-liner, just add --update)
+# Or via curl (the install one-liner, plus --update)
 curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/install.sh | bash -s -- --update
 
 # Update a single skill only
@@ -61,11 +69,16 @@ curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/ins
 ~/.cache/design-build-skills/install.sh --update --skill designer
 ```
 
-`--update` does a shallow re-fetch, re-rsync's both skill directories, and reruns `npm ci`. Your `~/.config/designer/config.json` is never modified.
+`--update` does a shallow re-fetch, re-rsync's both skill directories, reruns `npm ci`, and re-syncs the `/design` + `/build` commands. Your `~/.config/designer/config.json` is never modified.
 
 ---
 
 ## Discord setup (one-time, `designer` skill only)
+
+<details>
+<summary><strong>Click to expand the one-time Discord setup</strong> — only needed for the <code>designer</code> image-generation skill</summary>
+
+<br>
 
 > **Skip this section if you only want `design-build`** (build/extend a Preact app, no Midjourney). Run `designer setup --skip-discord` instead to verify tools are in place.
 
@@ -127,6 +140,8 @@ The setup script auto-diagnoses the most common failures:
 | `Midjourney bot not found` | MJ bot isn't in the server yet (Step 4) |
 
 Config is saved to `~/.config/designer/config.json`. Env overrides: `DESIGNER_DISCORD_TOKEN`, `DESIGNER_DISCORD_CHANNEL_ID`, `DESIGNER_DISCORD_GUILD_ID`, `DESIGNER_MJ_APP_ID`, `DESIGNER_MJ_IMAGINE_ID`, `DESIGNER_TRIGGER_MODE`, `DESIGNER_DISCORD_USER_TOKEN`.
+
+</details>
 
 ---
 
