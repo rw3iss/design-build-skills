@@ -5,6 +5,7 @@ REPO_URL="${DESIGNER_SKILLS_REPO:-git@github.com:rw3iss/design-build-skills.git}
 REPO_REF="${DESIGNER_SKILLS_REF:-main}"
 CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/design-build-skills}"
 INSTALL_ROOT="${DESIGNER_SKILLS_INSTALL_ROOT:-$HOME/.claude/skills}"
+COMMANDS_ROOT="${DESIGNER_SKILLS_COMMANDS_ROOT:-$HOME/.claude/commands}"
 
 DRY_RUN=0
 UPDATE=0
@@ -24,7 +25,7 @@ Usage: install.sh [options]
 
 Environment overrides:
   DESIGNER_SKILLS_REPO, DESIGNER_SKILLS_REF, DESIGNER_SKILLS_CACHE,
-  DESIGNER_SKILLS_INSTALL_ROOT
+  DESIGNER_SKILLS_INSTALL_ROOT, DESIGNER_SKILLS_COMMANDS_ROOT
 EOF
 }
 
@@ -149,6 +150,34 @@ install_skills() {
   done
 }
 
+# Install the /design and /build slash commands. Runs on both fresh installs and
+# --update (so existing installations pick up new/changed commands), and respects
+# --skill (designer → /design, design-build → /build). cp overwrites so updates
+# refresh the command bodies.
+install_commands() {
+  local src_dir="$SOURCE_DIR/commands"
+  if [[ ! -d "$src_dir" ]]; then
+    warn "no commands/ in source — skipping slash-command install"
+    return
+  fi
+
+  local cmds=(design.md build.md)
+  case "$SKILL_FILTER" in
+    designer)     cmds=(design.md);;
+    design-build) cmds=(build.md);;
+  esac
+
+  run "mkdir -p '$COMMANDS_ROOT'"
+  local installed=()
+  for c in "${cmds[@]}"; do
+    if [[ -f "$src_dir/$c" || $DRY_RUN -eq 1 ]]; then
+      run "cp '$src_dir/$c' '$COMMANDS_ROOT/$c'"
+      installed+=("/${c%.md}")
+    fi
+  done
+  log "installed commands into $COMMANDS_ROOT: ${installed[*]:-none}"
+}
+
 post_install() {
   local config="$HOME/.config/designer/config.json"
   printf '\n'
@@ -159,6 +188,9 @@ post_install() {
       [[ -f "$INSTALL_ROOT/$name/VERSION" ]] && v=$(cat "$INSTALL_ROOT/$name/VERSION")
       printf '  - %-14s  (v%s)\n' "$name" "$v"
     fi
+  done
+  for c in design build; do
+    [[ -f "$COMMANDS_ROOT/$c.md" ]] && printf '  - /%-13s (slash command)\n' "$c"
   done
   printf '\n'
 
@@ -275,6 +307,9 @@ log "source ready at: $SOURCE_DIR"
 
 log "installing skills into $INSTALL_ROOT"
 install_skills
+
+log "installing slash commands into $COMMANDS_ROOT"
+install_commands
 
 if [[ $DRY_RUN -eq 0 ]]; then
   post_install

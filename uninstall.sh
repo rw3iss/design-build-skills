@@ -2,6 +2,7 @@
 set -euo pipefail
 
 INSTALL_ROOT="${DESIGNER_SKILLS_INSTALL_ROOT:-$HOME/.claude/skills}"
+COMMANDS_ROOT="${DESIGNER_SKILLS_COMMANDS_ROOT:-$HOME/.claude/commands}"
 CACHE_DIR="${DESIGNER_SKILLS_CACHE:-$HOME/.cache/design-build-skills}"
 CONFIG="$HOME/.config/designer/config.json"
 
@@ -28,6 +29,14 @@ for name in designer design-build; do
   if [[ -d "$dst" ]]; then
     log "removing $dst"
     rm -rf "$dst"
+  fi
+done
+
+for cmd in design build; do
+  f="$COMMANDS_ROOT/$cmd.md"
+  if [[ -f "$f" ]]; then
+    log "removing $f"
+    rm -f "$f"
   fi
 done
 

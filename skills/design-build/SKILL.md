@@ -8,8 +8,10 @@ description: >-
   COMPONENT_INDEX.md reuse manifest, then either scaffolds a new app (when none
   exists) or extends the existing one in place — analyzing the request, reusing
   existing components, utilities, and styles before creating anything new.
-  Reference images are optional and used only when supplied. Does not produce
-  backend code or tests.
+  Reference images are optional and used only when supplied. Also bootstraps an
+  existing project with standalone DESIGN.md / BUILD.md / COMPONENT_INDEX.md rule
+  files (no code) on requests like "generate a BUILD.md" or "bootstrap this repo".
+  Does not produce backend code or tests.
 ---
 
 # design-build skill
@@ -153,6 +155,33 @@ App-root markdown the skill creates and maintains. Three tables — **Components
 row: `path · one-line purpose · reuse-for hint`. It is the contract every build
 reads first and updates last.
 
+## Bootstrap an existing project (docs only, no code)
+
+Sometimes the user just wants to **establish the rule files** in a project without
+building anything — "give this project a BUILD.md", "generate a DESIGN.md for my
+app", "bootstrap this repo with design-build docs". Triggers: "bootstrap", "just
+generate a BUILD.md / DESIGN.md", "set up the docs", "no code".
+
+Run `bootstrap_docs.ts` — it drops the template stubs (`DESIGN.md` / `BUILD.md` /
+`COMPONENT_INDEX.md`) into the target project and **nothing else** (no scaffold, no
+components, no `npm install`). It's no-clobber by default; pass `overwrite: true`
+to regenerate.
+
+After generating, **tailor the stub to the actual project**: read its
+`package.json`, configs, `src/` structure, and any existing `CLAUDE.md` /
+`README.md`, then fill the Stack / Project structure / project-specific rule
+sections with what's really true, and fold in any rules from an older
+`BUILD.md`/`DESIGN.md` you're replacing. The template carries the enforced
+defaults (SOLID, hoist/centralize, lazy-loading non-blocking components,
+100ms-throttled inputs, COMPONENT_INDEX upkeep, README data-layer note); your job
+is to make the project-specific parts accurate.
+
+```jsonc
+{ "projectDir": "/path/to/project", "docs": ["build"], "appName": "my-app", "overwrite": false }
+// docs: any of ["design","build","index"], or "all"
+// → { "status": "ok", "written": ["…/BUILD.md"], "skipped": [], "appName": "my-app" }
+```
+
 ## Commands
 
 | Script | Purpose |
@@ -160,6 +189,7 @@ reads first and updates last.
 | `resolve_target.ts '<json>'` | Resolve `appRoot` + new/extend operation + which rule files exist |
 | `select_images.ts '<json>'` | Resolve reference image paths — only when images are supplied |
 | `build_plan.ts '<json>'` | Read the rules, write `<appRoot>/PLAN.md` |
+| `bootstrap_docs.ts '<json>'` | Docs-only bootstrap: write `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` stubs into a project, no code (see [Bootstrap](#bootstrap-an-existing-project-docs-only-no-code)) |
 | `scaffold_preact.ts '<json>'` | **Fallback only.** New-app scaffolding normally delegates to the `scaffold-preact` skill (see [Delegated scaffolding](#delegated-scaffolding-new-apps)); use this bundled script only when that skill isn't available |
 
 ### `resolve_target.ts`

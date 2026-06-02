@@ -25,7 +25,14 @@ cd design-build-skills
 ./install.sh
 ```
 
-The script clones this repo into a local cache, copies the skill files into `~/.claude/skills/`, and runs `npm install`. Nothing else is needed on your machine beyond Node ≥22, git, npm, and rsync.
+The script clones this repo into a local cache, copies the skill files into `~/.claude/skills/`, installs the `/design` and `/build` slash commands into `~/.claude/commands/`, and runs `npm install`. Nothing else is needed on your machine beyond Node ≥22, git, npm, and rsync.
+
+### Slash commands
+
+Install adds two manual commands (refreshed on every `--update`):
+
+- **`/design <brief>`** — evoke the `designer` skill to generate design images. e.g. `/design a luxury watch PDP, cream + champagne gold, editorial serif`
+- **`/build <request>`** — evoke the `design-build` skill to build/extend an app, or bootstrap rule files. e.g. `/build add a settings page` · `/build from images 2 and 4` · `/build a BUILD.md`
 
 ---
 
