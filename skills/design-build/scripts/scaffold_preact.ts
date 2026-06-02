@@ -1,10 +1,20 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const TEMPLATE_ROOT = join(here, "..", "templates", "app-shell");
+
+// Destination paths that must NOT clobber an existing file. These are the
+// self-describing root docs and ignore file: if the target already has them
+// (e.g. the user wrote a DESIGN.md before scaffolding), keep theirs.
+const PRESERVE_IF_EXISTS = new Set([
+  "DESIGN.md",
+  "BUILD.md",
+  "COMPONENT_INDEX.md",
+  ".gitignore",
+]);
 
 export interface ScaffoldOptions {
   targetDir: string;
@@ -26,6 +36,7 @@ export async function scaffold(opts: ScaffoldOptions): Promise<void> {
     const rel = relative(TEMPLATE_ROOT, src);
     const destRel = rel.replace(/\.tmpl$/, "");
     const dest = join(opts.targetDir, destRel);
+    if (PRESERVE_IF_EXISTS.has(destRel) && existsSync(dest)) continue;
     mkdirSync(dirname(dest), { recursive: true });
     const content = readFileSync(src, "utf-8").replace(/__APP_NAME__/g, opts.appName);
     writeFileSync(dest, content);

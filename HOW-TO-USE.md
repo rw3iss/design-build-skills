@@ -1,6 +1,6 @@
-# How to Use design-and-build-skills
+# How to Use design-build-skills
 
-Two Claude Code skills you invoke by talking to Claude naturally — no slash commands needed. `designer` generates Midjourney images from a brief; `design-build` turns images into a runnable Preact app. They can be used together or independently.
+Two Claude Code skills you invoke by talking to Claude naturally — no slash commands needed. `designer` generates Midjourney images from a brief; `design-build` builds or extends a runnable Preact app from a page/feature request (reference images optional). They can be used together or independently.
 
 ---
 
@@ -94,11 +94,28 @@ Use ./brand/DESIGN-v2.md instead of the project default.
 ---
 
 <details open>
-<summary><strong>3. design-build — Scaffold a Preact app from images</strong></summary>
+<summary><strong>3. design-build — Build or extend a Preact app</strong></summary>
 
-Invoke after you have images — from a `designer` run, an existing folder, or specific files. Claude resolves the images, writes a build plan, scaffolds the app skeleton, then fills in components, styles, and mock fixtures.
+The gateway for building pages and features: "build the app", "add a settings page", "build a comments widget", "add a component". Claude reads the project's `DESIGN.md` + `BUILD.md` rules and the `COMPONENT_INDEX.md` reuse manifest, then either **scaffolds a new app** (when none exists) or **extends the existing one in place** — analyzing the request, reusing/extending existing components and styles before creating anything new, writing a `PLAN.md` brief, and building with a mandatory mock-data layer so the result runs with no backend.
 
-### Image input modes
+**Reference images are optional** — most requests won't have any. Supply them only when you want a visual reference to follow.
+
+### New vs. extend (CWD is the project)
+
+Claude walks up from your current directory for the nearest `package.json` (stopping at the `.git` boundary):
+
+- **App found → extend it in place** — the new page/feature/component is added under the app's existing conventions.
+- **No app → scaffold a new one** at your CWD. New-app scaffolding is delegated to the companion `scaffold-preact` skill when installed; otherwise a bundled fallback scaffolder is used.
+
+Say "new app" / "start fresh" to force a fresh scaffold, or "add" / "extend" / "new page" to force extension. The default leans toward **extend**.
+
+```
+Add a settings page with profile and notifications sections.
+Build a comments sidebar widget.
+Start a new app: a marketing landing page with hero + pricing.
+```
+
+### Supplying reference images (optional)
 
 **A — Indices from a prior designer run**
 ```
@@ -120,16 +137,18 @@ Build from /path/to/design1.png.
 Build from design-desktop.png and design-mobile.png.
 ```
 
-### Build modes
+### Reference-image follow modes (only when images are supplied)
 
-**Exact mode (default)** — replicates the design as precisely as possible. Claude must produce a full zone-by-zone layout inventory before writing any code.
+These modes govern **how literally to follow reference images**. With no images, neither applies — the build follows `DESIGN.md` + the existing code instead.
+
+**Exact mode (default)** — replicates the design as precisely as possible. Claude produces a full zone-by-zone layout inventory before writing any code, then routes all values through the app's design tokens.
 
 ```
 Build from 2 and 4.
 Replicate this design exactly.
 ```
 
-**Creative mode** — design images become a mood board. Claude extracts the aesthetic vocabulary (color story, typographic personality) then invents a bolder, more elaborate layout.
+**Creative mode** — design images become a mood board. Claude extracts the aesthetic vocabulary (color story, typographic personality) then invents a bolder, more elaborate layout using the app's existing tokens and components.
 
 ```
 Build from 2, but be more creative with it.
@@ -175,7 +194,9 @@ Place a `BUILD.md` in your project root (same walk-up mechanism as `DESIGN.md`).
 <details>
 <summary>What gets injected and where</summary>
 
-`BUILD.md` content appears in the generated `designs/<request>/prompts/prompt_build.md` under a "Build rules" section, before the execution directive. Claude reads this file at the start of the build phase and applies the rules when writing every component, service, and fixture.
+`BUILD.md` is read at the start of every build and inlined into the generated `PLAN.md` (written to the app root) under a "Build rules" section. Claude applies the rules when writing every component, service, and fixture.
+
+For **new** apps, design-build seeds a starter `BUILD.md` (alongside `DESIGN.md` and `COMPONENT_INDEX.md`) that already encodes the default client-app rules — SOLID components, hoist/centralize utilities & config, intelligent non-blocking components with lazy-loading states (initial → skeleton → data), 100ms-throttled input handlers, `COMPONENT_INDEX.md` upkeep, and a README data-layer note. Edit it to match your project.
 
 </details>
 
@@ -268,10 +289,10 @@ Build from 1 and 4. Exact mode. Include a .mobile.scss companion.
 <details open>
 <summary><strong>6. Tips & advanced usage</strong></summary>
 
-**Output location defaults to your launch directory.** All designs land in `./designs/<request-name>/` relative to wherever Claude Code was started. The simplest workflow is to launch Claude from inside your project folder. To override for a specific request, just say so:
+**Output locations.** `designer` images land in `./designs/<request-name>/images/` relative to where Claude Code was started. `design-build` builds into the **current project** — it extends the app it finds by walking up from your CWD, or scaffolds a new one at the CWD. So launch Claude from inside the project you want to build into. To override the target for a specific request, just say so:
 ```
 Design a checkout page. Use ~/Sites/myproject as the project root.
-Build from 2 and 4. Project folder is ~/Sites/clientX/.
+Add a settings page. The project is at ~/Sites/clientX/.
 ```
 
 **Chain designer → design-build in one conversation.** You don't need to start a new session. After `designer` shows the four variants, just say "build from 2" and `design-build` picks up immediately, reusing the same request name and `prompts/original.md`.
@@ -292,33 +313,43 @@ No device frames, no 3D, no people, no lifestyle photography.
 Build from ~/Desktop/figma-export-v3.png — exact mode.
 ```
 
-**The mock-data layer means every build is immediately demoable.** Run `npm run dev` in the `app/` directory right after the build phase completes. No backend, no env vars, no configuration needed.
+**The mock-data layer means every build is immediately demoable.** Run `npm run dev` in the app directory (the project root) right after the build phase completes. No backend, no env vars, no configuration needed. To connect a real backend later, implement an `HttpApiAdapter` against `src/services/api/ApiClient.ts` and swap it in at `src/services/api/index.ts` — a one-line change, no UI edits.
 
 <details>
 <summary>Directory layout reference</summary>
+
+**`designer`** writes only image artifacts under `designs/<request-name>/`:
 
 ```
 designs/
   <request-name>/
     prompts/
-      original.md          ← your original brief (designer phase)
+      original.md          ← your original brief
       prompt_design.md     ← full MJ prompt with rules + flags
-      prompt_build.md      ← build plan (layout inventory, directives, rules)
-      build-notes.md       ← selection-time extra guidance (if any)
     raw/
       mj-<id>.png          ← original 2×2 grid from Discord
       mj-<id>.json         ← message metadata + U-button IDs
     images/
       01.png … 04.png      ← split quadrants
       02-up.png            ← upscaled variants (if requested)
-    app/                   ← scaffolded Preact app
-      src/
-        components/        ← one folder per component (TSX + SCSS)
-        services/api/      ← ApiClient interface + injection point
-        mock/
-          MockApiAdapter.ts
-          data/*.json      ← fixture data
-      styles/              ← _variables, _fonts, _mixins, global
+```
+
+**`design-build`** builds into your **project** (not under `designs/`). A new app
+is scaffolded at the app root; an existing one is extended in place:
+
+```
+<app root>/
+  PLAN.md                  ← per-build brief (regenerated each run; gitignored)
+  DESIGN.md                ← design rules (seeded on new apps; consulted always)
+  BUILD.md                 ← build rules (seeded on new apps; consulted always)
+  COMPONENT_INDEX.md       ← reuse manifest (read first, updated last)
+  src/
+    components/            ← one folder per component (TSX + SCSS)
+    services/api/          ← ApiClient interface + injection point
+    mock/
+      MockApiAdapter.ts
+      data/*.json          ← fixture data
+  styles/                  ← _variables, _fonts, _mixins, global
 ```
 
 </details>
@@ -332,25 +363,27 @@ These are useful if you want to debug a step in isolation, inspect what a script
 
 
 ```bash
-# Resolve image paths from a folder
+# Resolve the target: new vs extend, app root, which rule files exist
+npx tsx ~/.claude/skills/design-build/scripts/resolve_target.ts \
+  '{"projectCwd":".","intent":"auto"}'
+
+# Resolve reference image paths (optional — only when supplying images)
 npx tsx ~/.claude/skills/design-build/scripts/select_images.ts \
   '{"mode":"dir","dir":"./mockups/checkout"}'
-
-# Resolve explicit file paths
 npx tsx ~/.claude/skills/design-build/scripts/select_images.ts \
   '{"mode":"paths","paths":["./design1.png","./design2.png"]}'
 
-# Write a build plan (exact mode)
+# Write the build brief (PLAN.md) — no images, design-rules-first
 npx tsx ~/.claude/skills/design-build/scripts/build_plan.ts \
-  '{"request":"my-app","projectCwd":".","imagePaths":["/abs/path/img.png"],"mode":"exact"}'
+  '{"request":"settings-page","projectCwd":".","objective":"add a settings page","intent":"auto"}'
 
-# Write a build plan (creative mode)
+# Write the build brief with reference images (exact follow mode)
 npx tsx ~/.claude/skills/design-build/scripts/build_plan.ts \
-  '{"request":"my-app","projectCwd":".","imagePaths":["/abs/path/img.png"],"mode":"creative","extraPrompt":"go bold"}'
+  '{"request":"checkout","projectCwd":".","objective":"build the checkout","imagePaths":["/abs/path/img.png"],"imageFollowMode":"exact"}'
 
-# Scaffold the app shell
+# Fallback scaffolder (used only when the scaffold-preact skill isn't installed)
 npx tsx ~/.claude/skills/design-build/scripts/scaffold_preact.ts \
-  '{"targetDir":"./designs/my-app/app","appName":"my-app"}'
+  '{"targetDir":".","appName":"my-app"}'
 ```
 
 All scripts output `{"status":"ok",...}` or `{"status":"error","message":"..."}` to stdout.

@@ -1,0 +1,54 @@
+# DESIGN.md — __APP_NAME__
+
+Design rules for this app. **Every `design-build` request reads this file first.**
+Keep it the single source of truth for how the product looks and feels. When a
+build establishes a new design decision, record it here so later builds stay
+consistent.
+
+> This file was seeded as a starter. Fill each section in as the design language
+> is established (the first feature build will do this). Delete the _(todo)_
+> markers as you go.
+
+## Aesthetic
+
+_(todo: 2–4 sentences — the overall personality. e.g. "calm neo-technical;
+business-casual; dense but uncluttered; one accent, two neutrals.")_
+
+## Color
+
+Defined in `styles/_variables.scss`. Document the intent here; the SCSS holds the values.
+
+| Token | Role | _(todo: value)_ |
+|---|---|---|
+| `$color-bg` | page background | |
+| `$color-surface` | raised surface | |
+| `$color-primary` | single accent — used sparingly | |
+| `$color-text` / `$color-text-muted` | text ramp | |
+
+Rule: **one accent.** Semantic colors (warn / success / danger) only when something is genuinely that state.
+
+## Typography
+
+Font stacks live in `styles/_fonts.scss` (one `@import url(...)` for all web fonts).
+
+| Variable | Used for | _(todo: stack)_ |
+|---|---|---|
+| `$font-heading` | display / headings | |
+| `$font-body` | body copy | |
+| `$font-label` | labels / mono data | |
+
+Rule: components reference `$font-*` variables — **never** a raw `font-family` string.
+
+## Spacing & radii
+
+Use the `$space-*` and `$radius-*` scales in `_variables.scss`. Do not introduce ad-hoc pixel values; extend the scale instead.
+
+## Component design
+
+- Prefer small, single-purpose components; break sections into discrete, reusable pieces.
+- Per-component SCSS; `.mobile.scss` companion only when the mobile variant materially differs.
+- Reuse before creating — consult [`COMPONENT_INDEX.md`](./COMPONENT_INDEX.md) first.
+
+## Motion
+
+_(todo: easing, durations, reduced-motion policy.)_

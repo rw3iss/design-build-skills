@@ -1,224 +1,248 @@
-import { writeFileSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { findDesignMd, readIfExists, requestPaths, ensureRequestDirs } from "../shared.ts";
+import { readIfExists, resolveTarget } from "../shared.ts";
+import type { BuildOperation } from "./resolve_target.ts";
 import { z } from "zod";
 
-export type BuildMode = "exact" | "creative";
+// How literally to follow reference images — only relevant when images are given.
+export type ImageFollowMode = "exact" | "creative";
 
 export interface ComposeInputs {
-  request: string;
-  originalBrief: string;
-  buildRules: string | null;
-  extraPrompt: string | null;
-  imagePaths: string[];
-  mode: BuildMode;
+  request: string;                  // short name/description of the feature or page
+  operation: BuildOperation;        // "new" = scaffold from template, "extend" = add to existing app
+  objective: string;                // the ask: what to build
+  designRules: string | null;       // DESIGN.md content (if found)
+  buildRules: string | null;        // BUILD.md content (if found)
+  componentIndex: string | null;    // COMPONENT_INDEX.md content (if present)
+  extraPrompt: string | null;       // extra invocation-time guidance
+  imagePaths: string[];             // optional reference images (often empty)
+  imageFollowMode: ImageFollowMode; // exact | creative — used only when imagePaths is non-empty
 }
 
-// ─── Layout Analysis Protocol (exact mode) ──────────────────────────────────
+// ─── Feature analysis & reuse — MANDATORY FIRST STEP ─────────────────────────
 
-const LAYOUT_ANALYSIS_EXACT = `\
-## Layout analysis — MANDATORY FIRST STEP
+const FEATURE_ANALYSIS = `\
+## Feature analysis & reuse — MANDATORY FIRST STEP
 
-Before writing a single line of code, read every selected design image and produce
-a written layout inventory **in your response**. This inventory is the structural
-blueprint for all components. Do not start coding until it is complete.
+Before writing a single line of code, analyze the request and plan for reuse.
+Write this analysis **in your response** before any code. Do not skip it.
 
-### Protocol
+1. **High-level analysis.** State the feature's goal/objective in 1–2 sentences:
+   what does it accomplish for the user, and where does it fit in the app?
 
-1. **Scan top-to-bottom.** List every distinct visual zone in vertical order.
-   Common zones: thin top utility bar · main navigation + logo ·
-   sub-navigation / category bar · hero · feature strip · product grid ·
-   editorial callout · footer. Name your zones based on what you actually see.
+2. **Granular/technical analysis.** Decompose it into its constituent pieces:
+   the discrete UI sections, interactive elements, data it reads/writes, states
+   (loading / empty / error), and any shared behavior. List them.
 
-2. **For each zone, document all six attributes:**
+3. **Reuse match — consult \`COMPONENT_INDEX.md\` (below).** For each piece from
+   step 2, scan the index for an existing component, utility/hook, or SCSS
+   mixin/class that already does it, or could with a small modification. This
+   includes layout components, page elements, and small or large feature units.
+   For each piece, decide and record one of:
+      - **reuse** — use an existing entry as-is
+      - **adapt/extend** — extend an existing entry (add a prop, variant, or mixin
+        parameter) rather than cloning it
+      - **new** — create new ONLY when the need is genuinely unique and nothing
+        existing fits or can reasonably be adapted
 
-   | Attribute | What to write |
-   |---|---|
-   | **Name** | Short identifier used as the component filename (e.g. \`TopBar\`, \`NavBar\`, \`Hero\`) |
-   | **Purpose** | One sentence: what does this zone communicate or do? |
-   | **Layout** | Column count + proportions (e.g. "2-col: text 45% · image 55%") |
-   | **Content slots** | Every distinct content element inside, in order (e.g. "kicker label · display headline [2 lines] · body copy · 2 CTA buttons · price") |
-   | **Visual treatment** | Background color, borders, accent marks (e.g. "cream bg · bottom hairline · em-dash kicker prefix") |
-   | **Approx. height** | Relative to viewport (e.g. "~55 vh" or "auto ~80 px") |
+4. **Default to modular.** Prefer breaking HTML sections and elements out into
+   discrete, single-purpose, reusable components over inlining large blocks.
+   If a piece you're about to build could plausibly be reused elsewhere, make it
+   a standalone component and add it to the index.
 
-3. **Write the inventory** as a markdown table or numbered list before any code block.
+Everything reusable should be reused. New component layouts and new components are
+for the genuinely unique parts only.`;
 
-4. **One zone = one component file.** Do not merge zones. Do not split a zone into
-   sub-components unless the zone contains a clearly reusable unit (e.g. a card in a grid).
+// ─── DRY + modularity directive ──────────────────────────────────────────────
 
-5. **Lock proportions.** Whatever column split / aspect ratio you document,
-   use those exact values in CSS (\`grid-template-columns\`, \`aspect-ratio\`, etc.).
-   Do not round or approximate after the fact.
+const DRY_DIRECTIVE = `\
+## DRY + modularity directive — non-negotiable
 
-6. **Cross-check before shipping.** After writing all components, re-read the
-   image and verify each zone matches its inventory entry. If you find a drift,
-   fix both the code and the inventory entry so they stay in sync.`;
+- **Reuse before creating.** Honor the reuse decisions from the feature analysis.
+- **No duplication.** Never duplicate a token, mixin, SCSS class, utility, or
+  component. If two things need the same value or behavior, factor it into a
+  shared variable / mixin / utility and reference it.
+- **Extend, don't clone.** When something is close, add a prop/variant/parameter
+  to the existing piece instead of copying it.
+- **Keep components small and discrete.** One component = one responsibility.
+- **Tokens & fonts only.** Every color/space/radius comes from \`$color-*\` /
+  \`$space-*\` / \`$radius-*\`; every font from \`$font-*\`. No raw values, no raw
+  \`font-family\` strings in component SCSS.`;
 
-// ─── Execution Directive (exact mode) ───────────────────────────────────────
+// ─── Reference-image analysis (only when images present) ─────────────────────
 
-const EXECUTION_DIRECTIVE_EXACT = `\
-## Execution directive — REPLICATE THE DESIGN, ZONE BY ZONE
+const IMAGE_ANALYSIS_EXACT = `\
+## Reference images — replicate (exact follow mode)
 
-Your layout inventory is the contract. For each zone:
+Reference images were provided. Treat them as a layout blueprint. Before coding,
+produce a written zone inventory of the relevant image(s):
 
-- Build **exactly** the column/grid structure you documented.
-- Reproduce **every content slot** you listed — nothing added, nothing omitted.
-- Apply the **exact visual treatment** (background, borders, accents) you noted.
-- Use the **exact proportions** (column splits, aspect ratios, heights) you measured.
-- If you discover a discrepancy between the inventory and the image while coding,
-  correct the inventory and the code together.
+For each distinct visual zone (top to bottom): **Name · Purpose · Layout
+(columns + proportions) · Content slots (in order) · Visual treatment
+(bg/borders/accents) · Approx. height**.
 
-**Do not generalize.** If the design shows 2 CTA buttons, implement 2 CTA buttons.
-If the hero splits text/image at ~45:55, write \`grid-template-columns: 45fr 55fr\`.
-If a kicker uses an em-dash prefix, use an em-dash prefix.
-"Similar but different" is a failure mode.`;
+Then build exactly what you documented — exact column splits, exact content
+slots, exact visual treatment. "Similar but different" is a failure. Still route
+all colors/spacing/fonts through the app's tokens (do not hardcode values pulled
+from the image).`;
 
-// ─── Design Inspiration Analysis (creative mode) ─────────────────────────────
+const IMAGE_ANALYSIS_CREATIVE = `\
+## Reference images — inspiration (creative follow mode)
 
-const LAYOUT_ANALYSIS_CREATIVE = `\
-## Design inspiration analysis — do this first (creative mode)
+Reference images were provided as a mood board, not a blueprint. Before coding,
+extract: **color story · typographic personality · spatial density · 1–2
+signature moves**. Then invent a bolder layout in the same spirit, expressed
+entirely through the app's existing tokens and components. Capture the aesthetic,
+not the literal arrangement.`;
 
-The design images are creative fuel, not a blueprint to copy. Before writing any code,
-read the images and perform this aesthetic extraction:
+// ─── Design language ──────────────────────────────────────────────────────────
 
-1. **Color story** — name the 2–4 dominant colors and describe their relationship
-   (e.g. "warm cream ground · deep ink text · single warm-gold accent; no bright colors").
+function designLanguageSection(inputs: ComposeInputs): string {
+  if (inputs.designRules) {
+    return `\
+## Design language — from DESIGN.md (authoritative)
 
-2. **Typographic personality** — describe the type aesthetic in 2–3 adjectives and
-   note the key typographic moves (e.g. "editorial, refined, high-contrast — display
-   serif headlines paired with light-weight all-caps labels").
+The app's design rules are below. Follow them. Also read the live tokens in
+\`styles/_variables.scss\` and font stacks in \`styles/_fonts.scss\`; DESIGN.md is
+the intent, the SCSS holds the values — they must stay consistent.
 
-3. **Spatial density** — is the layout airy and sparse, or information-dense?
-   What is the dominant negative-space rhythm?
+${inputs.designRules.trim()}`;
+  }
 
-4. **Signature design moves** — the 1–2 choices that give the design its distinctive
-   character (e.g. "editorial kicker with em-dash prefix · centered monogram logo
-   above a full-width nav").
+  if (inputs.operation === "new") {
+    return `\
+## Design language — establish it (no DESIGN.md yet)
 
-5. **Invent your own layout.** Using the vocabulary above as your constraint,
-   design a layout that is bolder, more elaborate, and more surprising than the
-   reference. You are not copying the design — you are using it as a mood board.
-   Be generous with scale, whitespace, and typographic contrast.
+No DESIGN.md was found and this is a new app. **Establish** the design language as
+part of this build: choose the aesthetic, color ramp (one accent + neutrals),
+type stacks, spacing/radii scales, and motion policy. Set them in
+\`styles/_variables.scss\` / \`styles/_fonts.scss\`, then **write the decisions into
+\`DESIGN.md\`** (the seeded stub) so every later build stays consistent.`;
+  }
 
-6. **Document your invented layout** as a zone inventory (same format as exact mode:
-   Name · Purpose · Layout · Content slots · Visual treatment · Approx. height)
-   so you can build from it consistently.`;
+  return `\
+## Design language — derive from existing code (no DESIGN.md)
 
-// ─── Execution Directive (creative mode) ────────────────────────────────────
+No DESIGN.md was found. Derive the design language from the existing app: read
+\`styles/_variables.scss\`, \`styles/_fonts.scss\`, and a few existing components to
+learn the tokens, type, and conventions. Match them. Consider writing a DESIGN.md
+to capture what you inferred so future builds have a source of truth.`;
+}
 
-const EXECUTION_DIRECTIVE_CREATIVE = `\
-## Execution directive — INSPIRED BY THE DESIGN, NOT BOUND BY IT
-
-Your aesthetic vocabulary and invented layout (above) are the contract.
-The reference design establishes the visual language; you determine the structure.
-
-- Match the **color story** and **typographic personality** faithfully.
-- Invent the **layout structure** — be bolder and more elaborate than the reference.
-- Go further with scale, whitespace, typographic contrast, and decorative detail.
-- Aim for something that would make a designer say "this is better than the reference."
-- The brief is a mood board, not a spec.`;
-
-// ─── Shared sections ─────────────────────────────────────────────────────────
+// ─── Typography mining ─────────────────────────────────────────────────────────
 
 const TYPOGRAPHY_MINING = `\
-## Typography mining (MANDATORY before writing component SCSS)
+## Typography (use the established stacks)
 
-The scaffold ships with \`src/styles/_fonts.scss\` pre-wired into
-\`global.scss\`. Before writing any component styles, walk through this
-protocol — this is how we guarantee the built UI has the right typography
-feel, not a generic system-font fallback.
+Font stacks live in \`styles/_fonts.scss\`, wired into \`global.scss\`. Components
+reference \`$font-heading\` / \`$font-body\` / \`$font-label\` etc. — never a raw
+\`font-family\`.
 
-1. **Enumerate every distinct text zone** in the selected image(s). Typical
-   zones: brand wordmark, top-nav items, hero headline, hero kicker, hero
-   subtitle, section titles, card titles, card labels (brand / model /
-   price), button labels, micro-copy, footer text, numeric data.
-2. **Describe each zone's visual attributes** — serif / sans / display /
-   mono, weight range, letter-spacing, case (all-caps vs sentence), and
-   relative size. Write this as a list in your working notes.
-3. **Propose 2 candidate font stacks per zone**. Prefer Google Fonts where
-   a close match exists (they're free, easy to @import, and well-covered).
-   Always include a generic fallback family and the generic category.
-   Example per zone:
-      heading:  ["Playfair Display", "Didot", serif]    — primary
-                ["Cormorant Garamond", "Georgia", serif] — alternate
-4. **Consolidate into \`src/styles/_fonts.scss\`**:
-   - Add one \`@import url(...)\` line at the top covering ALL chosen
-     Google Fonts with \`display=swap\`. Group weights so there's one URL.
-   - Replace each \`$font-*\` zone variable with the primary stack.
-   - Keep the alternate stack as a commented \`// alt:\` line above for
-     easy future swap-outs.
-   - Tune \`$weight-*\` if the design uses uncommon weights (e.g. 150, 350).
-5. **Import and use** — components reference \`$font-heading\`,
-   \`$font-body\`, \`$font-label\`, etc. Never write a raw \`font-family\`
-   string in a component SCSS file.
-6. **Verify legibility** — once the app runs (\`npm run dev\`), check the
-   browser console for failed font loads and visually confirm the weights
-   you requested actually loaded (Chrome DevTools → Network → WS → Fonts).
+- **Extending an app with fonts already chosen:** reuse the existing \`$font-*\`
+  stacks. Do not introduce a new typeface unless the feature genuinely needs one
+  (and if you do, add it to \`_fonts.scss\` and note it in DESIGN.md).
+- **New app, or a deliberate type decision needed:** enumerate the text zones
+  (wordmark, headings, labels, body, numeric/mono data), pick stacks per zone
+  (prefer Google Fonts with a generic fallback), add ONE \`@import url(...)\` with
+  \`display=swap\` covering all weights, and set the \`$font-*\` variables. Keep an
+  alternate stack as a commented \`// alt:\` line for easy swap-outs.`;
 
-When the design image is low-resolution or a glyph is ambiguous, prefer
-the font family that matches the overall aesthetic (e.g. editorial
-boutique → serif display; tech/SaaS → geometric sans) rather than
-guessing exact letterforms.`;
+// ─── Component + styling rules ────────────────────────────────────────────────
 
 const COMPONENT_RULES = `\
 ## Component + styling rules
 
-- Generate Preact components with per-component SCSS (and \`.mobile.scss\`
-  companions where the mobile variant materially differs from desktop).
-- Populate \`src/mock/data/*.json\` with realistic fixture data reflecting
-  the entities visible in the images (e.g. for a watch marketplace:
-  brand, model, price, image URL, case size, movement).
-- The UI must render correctly against the MockApiAdapter alone — no
-  real backend, no env vars required to demo.
-- Every text element uses \`$font-*\` variables from \`_fonts.scss\` — no
-  hardcoded \`font-family\`.`;
+- Preact components with per-component SCSS (and \`.mobile.scss\` companions only
+  where the mobile variant materially differs).
+- Wire any data the feature shows through the mock-data layer: add methods to
+  \`src/services/api/ApiClient.ts\`, implement them in \`MockApiAdapter\`, and add
+  realistic fixtures to \`src/mock/data/*.json\`. The feature must demo with no
+  backend and no env vars.
+- Follow the project structure in BUILD.md (components/, pages/, lib/, etc.).`;
+
+// ─── Index + docs maintenance ─────────────────────────────────────────────────
+
+const INDEX_MAINTENANCE = `\
+## After building — keep the index and docs current
+
+- **Update \`COMPONENT_INDEX.md\`.** Add a row for every new shared component,
+  utility/hook, or SCSS mixin/class you created: path · one-line purpose ·
+  reuse-for hint. If you extended an existing entry, update its row.
+- **Note new shared surface in the docs.** When you introduce a notable shared
+  component, utility, or style, add a short line to the app's README and/or
+  CLAUDE.md so the rest of the project knows it exists.
+- The index is the contract the next build reads first — leave it accurate.`;
 
 // ─── Composer ────────────────────────────────────────────────────────────────
 
 export function composePlan(inputs: ComposeInputs): string {
-  const { mode = "exact" } = inputs;
+  const hasImages = inputs.imagePaths.length > 0;
   const lines: string[] = [];
 
-  lines.push(`# Build prompt for ${inputs.request}`, "");
+  lines.push(`# Build brief for ${inputs.request}`, "");
   lines.push(
-    "This is the canonical build-phase prompt. It merges the original design brief,",
-    "any project-specific BUILD.md rules, selection-time additional guidance, and",
-    "the list of design images that were selected. The builder (Claude) uses this",
-    "document as the authoritative brief when generating the Preact app.",
+    `**Operation: ${inputs.operation === "new" ? "new app (scaffold from template, then build the request)" : "extend existing app (add this to the current codebase)"}**`,
+    ""
+  );
+  if (hasImages) {
+    lines.push(`**Reference-image follow mode: ${inputs.imageFollowMode}**`, "");
+  }
+  lines.push(
+    "This is the authoritative brief for the build. The builder (Claude) follows",
+    "it top-to-bottom: analyze and plan reuse first, honor the design and build",
+    "rules, reuse existing components/styles, then implement.",
     ""
   );
 
-  lines.push(`**Build mode: ${mode === "creative" ? "creative (design as inspiration)" : "exact (replicate the design)"}**`, "");
-
-  lines.push("## Original brief", "", inputs.originalBrief.trim() || "_(none provided)_", "");
-
+  // The ask
+  lines.push("## Objective (the request)", "", inputs.objective.trim() || "_(none provided)_", "");
   if (inputs.extraPrompt) {
-    lines.push("## Additional guidance (selection time)", "", inputs.extraPrompt.trim(), "");
+    lines.push("## Additional guidance", "", inputs.extraPrompt.trim(), "");
   }
 
-  if (inputs.buildRules) {
-    lines.push("## Build rules (from BUILD.md)", "", inputs.buildRules.trim(), "");
-  }
+  // 1. Feature analysis & reuse (mandatory first step)
+  lines.push(FEATURE_ANALYSIS, "");
 
-  lines.push("## Selected design images", "");
-  if (inputs.imagePaths.length === 0) {
-    lines.push("_(none — inferring from brief only)_", "");
+  // 2. Reuse manifest
+  lines.push("## Reuse manifest (COMPONENT_INDEX.md)", "");
+  if (inputs.componentIndex) {
+    lines.push(inputs.componentIndex.trim(), "");
   } else {
+    lines.push(
+      inputs.operation === "new"
+        ? "_(no index yet — this is a new app. Create COMPONENT_INDEX.md as you build, adding a row per shared component/utility/style.)_"
+        : "_(no COMPONENT_INDEX.md found at the app root. Scan the existing components/ and styles/ directories directly to find reusable pieces, then create the index to record them.)_",
+      ""
+    );
+  }
+
+  // 3. DRY directive
+  lines.push(DRY_DIRECTIVE, "");
+
+  // 4. Design language
+  lines.push(designLanguageSection(inputs), "");
+
+  // 5. Build rules
+  if (inputs.buildRules) {
+    lines.push("## Build rules — from BUILD.md (authoritative)", "", inputs.buildRules.trim(), "");
+  }
+
+  // 6. Reference images (optional)
+  if (hasImages) {
+    lines.push("## Reference images", "");
     for (const p of inputs.imagePaths) lines.push(`- ${p}`);
     lines.push("");
+    lines.push(inputs.imageFollowMode === "creative" ? IMAGE_ANALYSIS_CREATIVE : IMAGE_ANALYSIS_EXACT, "");
   }
 
-  // Layout analysis protocol — mode-specific
-  lines.push(mode === "creative" ? LAYOUT_ANALYSIS_CREATIVE : LAYOUT_ANALYSIS_EXACT, "");
-
-  // Execution directive — mode-specific
-  lines.push(mode === "creative" ? EXECUTION_DIRECTIVE_CREATIVE : EXECUTION_DIRECTIVE_EXACT, "");
-
-  // Typography mining — same for both modes
+  // 7. Typography
   lines.push(TYPOGRAPHY_MINING, "");
 
-  // Component rules — same for both modes
+  // 8. Component + styling rules
   lines.push(COMPONENT_RULES, "");
+
+  // 9. Index + docs maintenance
+  lines.push(INDEX_MAINTENANCE, "");
 
   return lines.join("\n");
 }
@@ -228,44 +252,57 @@ export function composePlan(inputs: ComposeInputs): string {
 const Args = z.object({
   request: z.string().min(1),
   projectCwd: z.string().min(1),
-  originalBrief: z.string().default(""),
+  objective: z.string().default(""),
   extraPrompt: z.string().nullable().default(null),
-  buildMd: z.string().nullable().optional(),
+  intent: z.enum(["auto", "new", "extend"]).default("auto"),
+  target: z.string().nullable().default(null),
+  designMd: z.string().nullable().optional(), // override DESIGN.md path
+  buildMd: z.string().nullable().optional(),  // override BUILD.md path
   imagePaths: z.array(z.string()).default([]),
-  mode: z.enum(["exact", "creative"]).default("exact"),
+  imageFollowMode: z.enum(["exact", "creative"]).default("exact"),
 });
 
 async function main() {
   const args = Args.parse(JSON.parse(process.argv[2] ?? "{}"));
-  const paths = requestPaths(args.projectCwd, args.request);
-  ensureRequestDirs(paths);
 
-  const buildMdPath = args.buildMd ?? findDesignMd(args.projectCwd, "BUILD.md");
-  const buildRules = readIfExists(buildMdPath);
+  const resolution = resolveTarget({
+    projectCwd: args.projectCwd,
+    intent: args.intent,
+    target: args.target,
+  });
 
-  let originalBrief = args.originalBrief;
-  const origPath = join(paths.prompts, "original.md");
-  if (!originalBrief && existsSync(origPath)) {
-    originalBrief = readFileSync(origPath, "utf-8");
-  }
-
-  if (args.extraPrompt) {
-    writeFileSync(join(paths.prompts, "build-notes.md"), args.extraPrompt);
-  }
+  const designRules = readIfExists(args.designMd ?? resolution.designMdPath);
+  const buildRules = readIfExists(args.buildMd ?? resolution.buildMdPath);
+  const componentIndex = readIfExists(resolution.componentIndexPath);
 
   const plan = composePlan({
     request: args.request,
-    originalBrief,
+    operation: resolution.operation,
+    objective: args.objective,
+    designRules,
     buildRules,
+    componentIndex,
     extraPrompt: args.extraPrompt,
     imagePaths: args.imagePaths,
-    mode: args.mode,
+    imageFollowMode: args.imageFollowMode,
   });
 
-  const promptBuildPath = join(paths.prompts, "prompt_build.md");
-  writeFileSync(promptBuildPath, plan);
+  const planPath = join(resolution.appRoot, "PLAN.md");
+  writeFileSync(planPath, plan);
 
-  console.log(JSON.stringify({ status: "ok", promptBuildPath, request: args.request, mode: args.mode }));
+  console.log(
+    JSON.stringify({
+      status: "ok",
+      planPath,
+      appRoot: resolution.appRoot,
+      operation: resolution.operation,
+      appFound: resolution.appFound,
+      hasDesignMd: Boolean(designRules),
+      hasBuildMd: Boolean(buildRules),
+      hasComponentIndex: Boolean(componentIndex),
+      imageCount: args.imagePaths.length,
+    })
+  );
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

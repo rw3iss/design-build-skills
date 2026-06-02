@@ -1,132 +1,212 @@
 ---
 name: design-build
 description: >-
-  Scaffold a Preact + TypeScript + SCSS application that matches a set of design
-  images. Use this when the user says "build it" / "build from these images" with
-  any image source: a prior designer-skill output, an existing designs/<name>
-  folder, an arbitrary image folder, or direct image file paths. Reads an optional
-  BUILD.md for project-specific rules, emits a PLAN.md, and produces an app/
-  scaffold with a mandatory mock-data layer so the result is immediately demoable.
-  Does not produce backend code or tests.
+  Build or extend a Preact + TypeScript + SCSS app from a page/feature request.
+  The gateway for "build the app", "add a settings page", "build a comments
+  widget", "add a component", "extend the app". Reads DESIGN.md (design rules,
+  tokens, aesthetic) and BUILD.md (build/code rules) when present, and the
+  COMPONENT_INDEX.md reuse manifest, then either scaffolds a new app (when none
+  exists) or extends the existing one in place — analyzing the request, reusing
+  existing components, utilities, and styles before creating anything new.
+  Reference images are optional and used only when supplied. Does not produce
+  backend code or tests.
 ---
 
 # design-build skill
 
-Turns design images into a Preact scaffold. The images can come from any source — no prior designer-skill run is required.
+The gateway for building new pages and features into a Preact + TypeScript + SCSS
+app. It figures out **what to build**, **where** (new app vs. extend the existing
+one), and **how** (the app's own design + build rules), and it reuses what already
+exists before creating anything new.
 
-## Image input modes
+It is **design-rules-first, not image-first.** Reference images are optional —
+most invocations won't have any. The authoritative inputs are the project's
+`DESIGN.md`, `BUILD.md`, and `COMPONENT_INDEX.md`.
 
-### Mode A — prior designer phase (indices)
-User ran the `designer` skill and has a `designs/<request>/` folder with `images/01–04.png` already present. User selects by index:
+## What it reads (in priority order)
 
-> "build from 2 and 4, make the buttons rounder"
+1. **`DESIGN.md`** (walked up from CWD) — design rules: tokens, theme, typography, component design, aesthetic. **Always consulted when present.**
+2. **`BUILD.md`** (walked up from CWD) — build rules: project structure, code quality, tooling. **Always consulted when present.**
+3. **`COMPONENT_INDEX.md`** (at the app root) — the reuse manifest of existing components, shared utilities/hooks, and shared SCSS. Read **before** building anything.
+4. **Reference images** — optional; used only if the user supplies a folder, file paths, or indices from a prior `designer` run.
+5. **The request** — the page/feature/component to build, plus any extra guidance.
 
-1. Derive `request` from the existing folder name.
-2. Resolve `imagesDir` = `designs/<request>/images/`.
-3. Call `select_images.ts` with `mode: "indices"`.
+## Target: new app vs. extend (CWD is the project)
 
-### Mode B — existing image folder
-User points to any folder on disk (may or may not be a design project root):
+The build target is the **current project**, resolved by `resolve_target.ts`:
 
-> "build from the images in ./mockups/checkout/"
+- Walk up from CWD for the nearest `package.json` (stopping at the `.git` boundary).
+  - **Found → extend** that app in place.
+  - **Not found → new**; scaffold a new app at the CWD.
+- **Explicit phrasing overrides detection:** "start fresh" / "new app" → new;
+  "add" / "extend" / "new page" / "new component" → extend.
+- An explicit target path (if the user gives one) overrides everything.
 
-1. Derive `request` from the folder name (kebab-case) or ask the user.
-2. If the folder is a design project root (has `images/` subdir with images), use that subdir; otherwise use the folder itself.
-3. Call `select_images.ts` with `mode: "dir"`.
-
-### Mode C — direct file paths
-User provides one or more explicit image paths:
-
-> "build from design1.png and design2.jpg"
-
-1. Derive `request` from the shared parent folder name, the first filename stem, or ask the user.
-2. Call `select_images.ts` with `mode: "paths"`.
-
----
-
-## Output location
-
-- If `designs/<request>/` **already exists** (prior designer phase): build the app under `designs/<request>/app/`.
-- If `designs/<request>/` **does not exist**: create it and build the app under `designs/<request>/app/`.
-
-The `build_plan.ts` + `scaffold_preact.ts` scripts always write to `designs/<request>/app/` regardless of image source. Pass `projectCwd` as the working directory root so paths resolve correctly.
-
----
-
-## Build mode
-
-`build_plan.ts` accepts a `mode` parameter that controls how closely the app must match the design:
-
-| Mode | When to use | Behavior |
-|---|---|---|
-| `"exact"` (default) | "build this", "replicate this design" | Forces a mandatory zone-by-zone layout analysis before any code; execution directive requires pixel-accurate replication of each zone's column structure, content slots, and visual treatment |
-| `"creative"` | "be more creative", "use this as inspiration", "go further" | Replaces the layout analysis with an aesthetic-extraction step (color story, typographic personality, signature moves); execution directive says to invent a bolder layout that captures the same spirit |
-
-Read the user's phrasing to pick the mode. Phrases like "be creative", "more abstract", "inspired by", "go further", or "do something unique" → `creative`. Anything else → `exact`.
-
----
+Default behavior is loose and leans toward **extend** — building into the existing
+codebase is the common case.
 
 ## Flow
 
-1. **Determine `request` name** — from the existing design folder, the image folder name (kebab-cased via `toRequestName`), or a name the user provides.
-2. **Determine `mode`** — `"exact"` (default) or `"creative"` based on user phrasing.
-3. **Resolve image paths** — call `select_images.ts` in the appropriate mode (A, B, or C above). Capture the returned `imagePaths` array.
-4. **Write PLAN.md** — call `build_plan.ts` with `request`, `projectCwd`, `imagePaths`, `mode`, and optional `extraPrompt`. The `originalBrief` is read automatically from `designs/<request>/prompts/original.md` if it exists (designer phase); otherwise it defaults to empty.
-5. **Scaffold the app skeleton** — call `scaffold_preact.ts` with `targetDir` = `designs/<request>/app/` and `appName` = `request`.
-6. **Write components, styles, and fixtures** — Claude (this conversation) reads the images and PLAN.md. In `exact` mode: produce the layout inventory first, then implement zone by zone. In `creative` mode: produce the aesthetic extraction + invented layout first, then implement.
+1. **Resolve the target** — run `resolve_target.ts` with `projectCwd` and the
+   `intent` you inferred (`auto` | `new` | `extend`). It returns `appRoot`,
+   `operation`, and whether `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` exist.
+2. **Resolve images (only if the user supplied any)** — call `select_images.ts`
+   (modes A/B/C below) and capture `imagePaths`. Skip entirely when there are none.
+3. **Write the build brief** — run `build_plan.ts`. It reads DESIGN.md, BUILD.md,
+   and COMPONENT_INDEX.md, folds in the request and any images, and writes
+   `<appRoot>/PLAN.md` (regenerated each run; gitignored in scaffolded apps).
+4. **Scaffold (new app only) — delegate to `scaffold-preact`.** If
+   `operation === "new"`, **invoke the `scaffold-preact` skill** (Skill tool:
+   `scaffold-preact`) to lay down the base app, rather than scaffolding by hand.
+   See [Delegated scaffolding](#delegated-scaffolding-new-apps) below for exactly
+   what to pass. After it returns, **layer design-build's essentials on top**:
+   - Ensure the mandatory **mock-data layer** exists (`ApiClient` +
+     `MockApiAdapter` + `src/mock/data/*.json`) — see below.
+   - Seed `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` if still absent (so the
+     project is self-describing for later builds).
 
----
+   For `extend`, do **not** scaffold.
+5. **Analyze, then build** — follow `PLAN.md`. Do the mandatory feature analysis
+   and reuse-match (below) before writing code, then implement.
+6. **Update the index + docs** — add/refresh `COMPONENT_INDEX.md` rows for every
+   new shared component, utility, or SCSS mixin/class, and note notable new shared
+   surface in the README / CLAUDE.md.
+
+## Delegated scaffolding (new apps)
+
+When `operation === "new"`, design-build does **not** hand-roll the framework — it
+delegates to the **`scaffold-preact`** skill and then customizes the result with
+this project's request. The base scaffold (Preact + TS + traditional SCSS, configs
+in `config/`, tab indentation, a persisted UI-state utility, optional caching) is
+`scaffold-preact`'s job; the design intent and the feature are design-build's.
+
+**Invoke `scaffold-preact`** (via the Skill tool) with:
+
+| Pass | Value |
+|---|---|
+| target / project path | `appRoot` (from `resolve_target.ts`) |
+| `DESIGN.md` | the resolved `designMdPath` (if any) — so it sets tokens/typography from the design rules instead of generic defaults |
+| `BUILD.md` | the resolved `buildMdPath` (if any) — so it follows the project's structure/tooling rules |
+| `COMPONENT_INDEX.md` | the resolved `componentIndexPath` (if any) |
+| input query | the build objective + any extra guidance (drives feature parsing: theme, router, caching, etc.) |
+| reference images | `imagePaths` (if any) — aesthetic reference only |
+
+Then continue with design-build's own steps (mock-data layer, then build the
+feature per `PLAN.md`). `scaffold-preact` produces a runnable base; design-build
+fills in the feature-specific components.
+
+**Fallback.** If the `scaffold-preact` skill isn't installed/available, fall back
+to the bundled `scaffold_preact.ts` script (`targetDir = appRoot`), which seeds an
+equivalent framework plus the mock-data layer and the starter
+`DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` (never clobbering existing ones).
+Note this fallback ships a smaller template than `scaffold-preact` and does not
+include the caching / UI-state utilities.
+
+## Mandatory: feature analysis → reuse-match (before any code)
+
+`PLAN.md` carries the full protocol; the contract is:
+
+1. **High-level analysis** — the feature's goal/objective and where it fits.
+2. **Granular/technical analysis** — decompose into discrete pieces: UI sections,
+   interactive elements, data, states (loading/empty/error), shared behavior.
+3. **Reuse-match against `COMPONENT_INDEX.md`** — for each piece, decide
+   **reuse** (use as-is) / **adapt** (extend an existing component, util, or mixin)
+   / **new** (only when genuinely unique). Layout components and page elements
+   count. Everything reusable gets reused.
+4. **Default to modular** — break sections and elements into discrete,
+   single-purpose, reusable components rather than inlining large blocks. New
+   component layouts are for the genuinely unique parts only.
+
+## DRY — non-negotiable
+
+Never duplicate a token, mixin, SCSS class, utility, or component. Extend the
+existing one (add a prop/variant/parameter) instead of cloning. All colors,
+spacing, and radii come from `$color-*` / `$space-*` / `$radius-*`; all fonts
+from `$font-*`. No raw values or raw `font-family` strings in component SCSS.
+
+## Reference images (optional)
+
+When images are supplied, `build_plan.ts` adds an image protocol governed by
+`imageFollowMode`:
+
+| Mode | When | Behavior |
+|---|---|---|
+| `exact` (default) | "build this", "replicate" | Zone-by-zone inventory, then replicate layout faithfully — but still route all values through the app's tokens |
+| `creative` | "be creative", "use as inspiration", "go further" | Treat images as a mood board; invent a bolder layout in the same spirit using existing tokens/components |
+
+With no images, neither protocol is emitted — the build follows DESIGN.md +
+existing code instead.
 
 ## Mandatory: the mock-data layer
 
-Every scaffolded app exposes `src/services/api/ApiClient.ts` (an interface) and `src/services/api/index.ts` (the injection point wiring in `MockApiAdapter`). The UI depends only on `ApiClient`. Swapping to a real backend is a one-line change in `services/api/index.ts`. Fixtures in `src/mock/data/*.json` must reflect the entities shown in the design images.
+Every app exposes `src/services/api/ApiClient.ts` (interface) and
+`src/services/api/index.ts` (the single injection point wiring in
+`MockApiAdapter`). Any data a feature shows is added as `ApiClient` methods,
+implemented in `MockApiAdapter`, and backed by realistic `src/mock/data/*.json`
+fixtures. The feature must demo with no backend and no env vars. Swapping to a
+real backend is a one-line change in `index.ts`.
 
----
+## COMPONENT_INDEX.md — the reuse manifest
+
+App-root markdown the skill creates and maintains. Three tables — **Components**,
+**Shared utilities & hooks**, **Shared SCSS (mixins · classes · tokens)** — each
+row: `path · one-line purpose · reuse-for hint`. It is the contract every build
+reads first and updates last.
 
 ## Commands
 
 | Script | Purpose |
 |---|---|
-| `select_images.ts '<json>'` | Resolve image paths — supports three modes (see below) |
-| `build_plan.ts '<json>'` | Write `designs/<request>/prompts/prompt_build.md` |
-| `scaffold_preact.ts '<json>'` | Copy templates into `designs/<request>/app/` |
+| `resolve_target.ts '<json>'` | Resolve `appRoot` + new/extend operation + which rule files exist |
+| `select_images.ts '<json>'` | Resolve reference image paths — only when images are supplied |
+| `build_plan.ts '<json>'` | Read the rules, write `<appRoot>/PLAN.md` |
+| `scaffold_preact.ts '<json>'` | **Fallback only.** New-app scaffolding normally delegates to the `scaffold-preact` skill (see [Delegated scaffolding](#delegated-scaffolding-new-apps)); use this bundled script only when that skill isn't available |
 
-### `select_images.ts` modes
+### `resolve_target.ts`
 
 ```jsonc
-// Mode A — numeric indices into a designer-phase images/ dir
-{ "mode": "indices", "imagesDir": "designs/checkout/images", "indices": [2, 4], "preferUpscaled": false }
-
-// Mode B — all images from an arbitrary folder
-{ "mode": "dir", "dir": "/path/to/any/image/folder" }
-
-// Mode C — explicit file paths
-{ "mode": "paths", "paths": ["/abs/path/img1.png", "/abs/path/img2.jpg"] }
+{ "projectCwd": ".", "intent": "auto", "target": null }
+// intent: "auto" (detect) | "new" (force scaffold) | "extend" (force add)
+// → { "appRoot": "...", "operation": "new"|"extend", "appFound": bool,
+//     "designMdPath": "..."|null, "buildMdPath": "..."|null, "componentIndexPath": "..."|null }
 ```
 
-Returns: `{ "status": "ok", "imagePaths": ["..."] }`
+### `select_images.ts` (optional)
 
-### `build_plan.ts` args
+```jsonc
+{ "mode": "indices", "imagesDir": "designs/checkout/images", "indices": [2, 4], "preferUpscaled": false } // A — prior designer run
+{ "mode": "dir", "dir": "/path/to/any/image/folder" }                                                    // B — any folder
+{ "mode": "paths", "paths": ["/abs/img1.png", "/abs/img2.jpg"] }                                          // C — explicit paths
+// → { "status": "ok", "imagePaths": ["..."] }
+```
+
+### `build_plan.ts`
 
 ```jsonc
 {
-  "request": "checkout-glass",       // request / folder name
-  "projectCwd": ".",                 // root for BUILD.md walk-up + designs/ location
-  "imagePaths": ["..."],             // resolved absolute paths from select_images
-  "extraPrompt": "rounder buttons",  // optional selection-time guidance
-  "originalBrief": "",              // optional; auto-read from prompts/original.md if blank
-  "mode": "exact"                   // "exact" (default) or "creative"
+  "request": "settings-page",       // short name of the feature/page
+  "projectCwd": ".",                // root for target resolution + rule-file walk-up
+  "objective": "add a settings page with profile + notifications", // the ask
+  "extraPrompt": "match the existing card style", // optional extra guidance
+  "intent": "auto",                 // "auto" | "new" | "extend"
+  "target": null,                   // optional explicit app dir
+  "imagePaths": [],                 // optional; from select_images
+  "imageFollowMode": "exact"        // "exact" (default) | "creative" — only used when imagePaths is non-empty
 }
+// → writes <appRoot>/PLAN.md; returns { planPath, appRoot, operation, ... }
 ```
 
-### `scaffold_preact.ts` args
+### `scaffold_preact.ts` (new app only, if /scaffold-preact skill is not available)
 
 ```jsonc
-{ "targetDir": "designs/checkout-glass/app", "appName": "checkout-glass" }
+{ "targetDir": "<appRoot>", "appName": "acme" }
+// Seeds the framework + mock layer + starter DESIGN.md / BUILD.md / COMPONENT_INDEX.md / .gitignore
+// (never overwriting existing copies of those root docs).
 ```
-
----
 
 ## Shared utilities
 
-`shared.ts` re-exports path/name helpers from `../designer/lib/` (storage + prompt_prep). The **designer workflow** does not need to have been run — only the shared library files need to be present. Both skills are installed together by `install.sh`.
+`shared.ts` re-exports path/name helpers (`toRequestName`, `findDesignMd`,
+`readIfExists`) from `../designer/lib/`, plus the target resolver
+(`resolveTarget`, `findAppRoot`). The **designer workflow** need not have run —
+only the shared library files must be present. Both skills install together.

@@ -3,7 +3,7 @@
 Two Claude Code skills that work together to turn a design brief into a working Preact app:
 
 1. **`designer`** — takes a prompt, generates design images via Midjourney through a Discord bot, saves them into a per-request folder.
-2. **`design-build`** — takes a folder of images (plus optional extra guidance) and scaffolds a Preact + TypeScript + SCSS app that matches them, including a mandatory mock-data layer so the output is demoable with no backend.
+2. **`design-build`** — the gateway for building pages and features into a Preact + TypeScript + SCSS app. It reads the project's `DESIGN.md` / `BUILD.md` rules and a `COMPONENT_INDEX.md` reuse manifest, then either scaffolds a new app or extends the existing one in place — reusing existing components and styles before creating anything new. Reference images are optional. Includes a mandatory mock-data layer so the output is demoable with no backend.
 
 Status: **implemented, v0.0.1-alpha.** Design doc: [`docs/specs/2026-04-17-design-to-app-workflow-design.md`](./docs/specs/2026-04-17-design-to-app-workflow-design.md). Implementation plan: [`docs/plans/2026-04-17-design-to-app-workflow-implementation.md`](./docs/plans/2026-04-17-design-to-app-workflow-implementation.md).
 
@@ -29,7 +29,7 @@ The script clones this repo into a local cache, copies the skill files into `~/.
 
 ---
 
-**`design-build` is ready to use immediately after install** — no Discord credentials or other setup required. Give it any image (file path, folder, or indices from a prior designer run) and it works.
+**`design-build` is ready to use immediately after install** — no Discord credentials or other setup required. Point it at a request ("build the app", "add a settings page") in any project; reference images are optional.
 
 The Discord setup below is only needed if you also want the **`designer`** skill (Midjourney image generation).
 
@@ -40,6 +40,9 @@ The Discord setup below is only needed if you also want the **`designer`** skill
 The first install leaves a cache at `~/.cache/design-build-skills`. After that you never need to clone again:
 
 ```bash
+# From a clone of this repo — fetches the latest and reinstalls
+npm run update
+
 # Uses the cached installer
 ~/.cache/design-build-skills/install.sh --update
 
@@ -57,7 +60,7 @@ curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/ins
 
 ## Discord setup (one-time, `designer` skill only)
 
-> **Skip this section if you only want `design-build`** (image → Preact app, no Midjourney). Run `designer setup --skip-discord` instead to verify tools are in place.
+> **Skip this section if you only want `design-build`** (build/extend a Preact app, no Midjourney). Run `designer setup --skip-discord` instead to verify tools are in place.
 
 Before `designer` can run, you need: a Discord application with a bot, a server you control, both your custom bot **and** the Midjourney bot in that server, and a handful of IDs.
 
@@ -124,7 +127,11 @@ Config is saved to `~/.config/designer/config.json`. Env overrides: `DESIGNER_DI
 
 - `designer` reads a brief, walks up from your CWD for a `DESIGN.md`, merges project rules into a Midjourney-ready prompt, fires `/imagine` through a bot you own, waits for the reply, downloads the 2×2 grid, splits it into four variant images, and stores everything under `./designs/<request-name>/`.
 - `designer upscale <request-name> <indices...>` goes back and clicks U1–U4 on the original Midjourney post to get true high-res upscales of the variants you pick.
-- `design-build` accepts images from any source — numeric indices into a prior designer output, any image folder, or explicit file paths (single or multiple). It walks up for a `BUILD.md`, produces a `PLAN.md`, scaffolds `app/` with config/, src/, styles/, services/api/, and mock/ — then Claude fills in component bodies and mock fixtures based on the images. Two build modes: **exact** (mandatory zone-by-zone layout analysis, pixel-accurate replication) and **creative** (design as mood board, Claude invents a bolder layout in the same aesthetic). The `designer` workflow does not need to have been run to use `design-build`.
+- `design-build` is the gateway for building pages/features. It walks up from the CWD for the project's `DESIGN.md` (design rules) and `BUILD.md` (build rules), reads the `COMPONENT_INDEX.md` reuse manifest, and resolves a target: an existing app (found by walking up for `package.json`) is **extended in place**; otherwise a **new app is scaffolded** at the CWD. It analyzes the request (goal, then granular pieces), matches each piece against the index to reuse/adapt/create, writes a `PLAN.md` brief, and builds — DRY-first, modular, mock-data-backed, then updates the index. Reference images are optional; when supplied they add an **exact** (replicate) or **creative** (mood board) follow mode. The `designer` workflow does not need to have been run.
+
+### Companion skill: `scaffold-preact`
+
+For **new** apps, `design-build` delegates the base scaffold to the separate `scaffold-preact` skill when it's installed — it produces the Preact + TypeScript + traditional-SCSS foundation (tab indentation, a persisted UI-state hook, optional client-side caching), which `design-build` then customizes with the project's design rules and the requested feature. If `scaffold-preact` isn't installed, `design-build` falls back to its own bundled scaffolder, so it works either way. Install `scaffold-preact` separately for the richer base.
 
 ---
 

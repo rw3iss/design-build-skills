@@ -1,0 +1,95 @@
+# BUILD.md — __APP_NAME__
+
+Build rules for this app: structure, code quality, and tooling conventions.
+**Every `design-build` request reads this file** (alongside `DESIGN.md`) and must
+follow it. Record project-specific build decisions here so later builds comply.
+
+> Seeded as a starter — adjust to match how this project actually works.
+
+## Stack
+
+- Preact + TypeScript + SCSS, built with Vite (`@preact/preset-vite`).
+- Linting via oxlint (`npm run lint`).
+- Mock-data layer is mandatory (see below) — the app must demo with no backend.
+
+## Project structure
+
+```
+src/
+  app/            App shell + top-level composition
+  components/     Reusable UI components (one folder per component + its .scss)
+  pages/          Route/page-level components
+  lib/            Shared utilities and hooks (throttle, caching helpers, formatters)
+  config/         Centralized app configuration + constants
+  services/api/   ApiClient interface + injection point (index.ts)
+  services/cache/ Client-side data cache (when caching is enabled)
+  mock/           MockApiAdapter + data/*.json fixtures
+styles/           Global SCSS: _variables, _mixins, _fonts, _mobile, global
+```
+
+## Component design — SOLID
+
+Every component follows SOLID principles:
+
+- **Single-purpose** — one component does one thing. If it grows two
+  responsibilities, split it. Break large sections into smaller components.
+- **Open/extensible** — extend behavior via props, `children`, and composition
+  rather than editing a component's internals or copying it.
+- **Substitutable** — variants of a component honor the same prop contract.
+- **Narrow interfaces** — props are minimal and specific; don't pass a god-object
+  when two fields will do.
+- **Depend on abstractions** — components consume the `ApiClient` interface and
+  hooks, never a concrete adapter or global singleton directly.
+
+## Code structure — hoist & centralize
+
+- **Hoist within a file.** Order every file top-to-bottom: imports → constants /
+  config → type definitions → helper functions → the component/export. No magic
+  values or inline helper definitions buried mid-component.
+- **Centralize utilities & config.** Shared logic lives in `src/lib/`; app
+  configuration and constants live in `src/config/`. Never scatter the same
+  helper, constant, or config value across files — define once, import everywhere.
+- **Tokens & fonts only.** Reference `$font-*` / `$color-*` / `$space-*` /
+  `$radius-*` from styles — never raw values. No duplicated logic, tokens, or styles.
+- **TypeScript.** Explicit prop types; no `any` in a component's public surface.
+
+## Component behavior — intelligent, non-blocking
+
+- **Never block rendering or interaction.** A component renders its shell
+  immediately. Do not `await` data before first paint and never freeze the UI.
+- **Lazy-loading states are the default.** Data-driven components progress through
+  three states: (1) an initial/empty shell, (2) a loader/skeleton while fetching,
+  (3) the loaded data. Always render (1) instantly, then (2), then (3).
+- **Use caching when available.** If client-side caching is implemented
+  (`src/services/cache/` + a `useCachedResource`-style hook), data components read
+  through it: serve cached data immediately, revalidate in the background.
+- **Throttle bound input handlers.** Inputs with bound event handlers
+  (`onInput`, `onScroll`, `onResize`, `onMouseMove`, search-as-you-type, etc.) are
+  **throttled to 100ms by default** via a shared `throttle` utility / hook in
+  `src/lib/`. Override the interval only when a specific input needs it.
+
+## Reuse & documentation — keep it DRY
+
+- **`COMPONENT_INDEX.md` is the source of truth.** Document **every** new page,
+  component, utility, hook, and SCSS module/mixin/helper there: path · one-line
+  purpose · reuse-for hint.
+- **Consult it before building.** Every new component or feature must check
+  `COMPONENT_INDEX.md` first and **reuse or extend** what exists instead of
+  duplicating it. Only create something new when nothing fits.
+- **Keep `CLAUDE.md` and `README.md` current.** Reflect major features or changes
+  in both as they land — don't leave them stale.
+- **README must document the data layer.** The generated `README.md` includes a
+  short section on connecting a real data service: implement an `HttpApiAdapter`
+  against the `ApiClient` interface and swap it in at `src/services/api/index.ts`
+  (one line) — no UI changes required.
+
+## The mock-data layer (mandatory)
+
+- UI depends only on `src/services/api/ApiClient.ts` (an interface).
+- `src/services/api/index.ts` is the single injection point, wired to `MockApiAdapter`.
+- Swapping to a real backend is a one-line change in `index.ts`.
+- Fixtures live in `src/mock/data/*.json` and reflect real entities the UI shows.
+
+## Out of scope
+
+- No backend code. No test generation (handled separately).

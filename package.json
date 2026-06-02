@@ -23,6 +23,7 @@
     "install-skills": "bash ./install.sh",
     "install-skills:local": "bash ./install.sh --local .",
     "install-skills:dry": "bash ./install.sh --dry-run",
+    "update": "bash ./update.sh",
     "uninstall-skills": "bash ./uninstall.sh"
   },
   "engines": {

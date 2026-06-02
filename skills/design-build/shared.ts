@@ -18,3 +18,14 @@ if (!existsSync(designerLib)) {
 
 export { toRequestName, requestPaths, ensureRequestDirs } from "../designer/lib/storage.ts";
 export { findDesignMd, readIfExists } from "../designer/lib/prompt_prep.ts";
+
+// App-root + new/extend resolver — the entry point for "where do I build, and is
+// this a new app or an extension?". No cycle: resolve_target imports the designer
+// lib directly, not this module.
+export { resolveTarget, findAppRoot } from "./scripts/resolve_target.ts";
+export type {
+  BuildIntent,
+  BuildOperation,
+  TargetResolution,
+  ResolveTargetInputs,
+} from "./scripts/resolve_target.ts";

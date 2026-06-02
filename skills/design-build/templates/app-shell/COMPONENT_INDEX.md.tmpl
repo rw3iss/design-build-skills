@@ -1,0 +1,35 @@
+# COMPONENT_INDEX.md — __APP_NAME__
+
+The **reuse manifest** for this app. `design-build` reads this file before building
+any new page or feature, and updates it after. Its purpose is DRY: new work must
+reuse, adapt, or extend what already exists here before anything new is created.
+
+**How to use it (every build):**
+1. Analyze the request — goal/objective, then the granular pieces/functionality.
+2. Scan the tables below for components, utilities, or styles that match or could be
+   adapted (layout pieces included).
+3. Reuse or extend those. Create a new entry **only** when the need is genuinely unique.
+4. Add a row here for every new shared component, utility/hook, or SCSS mixin/class.
+
+> Seeded empty. Rows accumulate as the app grows.
+
+## Components
+
+| Component | Path | Purpose | Reuse for |
+|---|---|---|---|
+| _(none yet)_ | | | |
+
+## Shared utilities & hooks
+
+| Name | Path | Purpose | Reuse for |
+|---|---|---|---|
+| _(none yet)_ | | | |
+
+## Shared SCSS (mixins · classes · tokens)
+
+| Name | Path | Purpose | Reuse for |
+|---|---|---|---|
+| `mobile` / `tablet` / `desktop` | `styles/_mixins.scss` | responsive breakpoints | media queries |
+| `fluid()` | `styles/_mixins.scss` | fluid clamp() sizing | responsive type/spacing |
+| `$color-*` / `$space-*` / `$radius-*` | `styles/_variables.scss` | design tokens | all components |
+| `$font-*` | `styles/_fonts.scss` | font stacks | all typography |
