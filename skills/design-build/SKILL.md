@@ -98,11 +98,12 @@ feature per `PLAN.md`). `scaffold-preact` produces a runnable base; design-build
 fills in the feature-specific components.
 
 **Fallback.** If the `scaffold-preact` skill isn't installed/available, fall back
-to the bundled `scaffold_preact.ts` script (`targetDir = appRoot`), which seeds an
-equivalent framework plus the mock-data layer and the starter
-`DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` (never clobbering existing ones).
-Note this fallback ships a smaller template than `scaffold-preact` and does not
-include the caching / UI-state utilities.
+to the bundled `scaffold_preact.ts` script (`targetDir = appRoot`). Its template is
+a mirror of the `scaffold-preact` base (same configs-in-`config/`, traditional
+SCSS, tab indentation, persisted UI-state utility in `src/lib/storage.ts` +
+`src/hooks/useUIState.ts`) plus design-build's mandatory mock-data layer and the
+starter `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` (never clobbering existing
+ones).
 
 ## Mandatory: feature analysis → reuse-match (before any code)
 
@@ -118,13 +119,18 @@ include the caching / UI-state utilities.
 4. **Default to modular** — break sections and elements into discrete,
    single-purpose, reusable components rather than inlining large blocks. New
    component layouts are for the genuinely unique parts only.
+5. **Place it correctly** — a **page** (route/screen) → `src/pages/<PageName>/`; a
+   **feature/UI component** → `src/components/<feature-or-component>/`; a
+   **primitive/core "common" component** (Button, Input, Modal, …) →
+   `src/components/common/<Component>/`. Never dump everything flat into `src/components/`.
 
 ## DRY — non-negotiable
 
 Never duplicate a token, mixin, SCSS class, utility, or component. Extend the
 existing one (add a prop/variant/parameter) instead of cloning. All colors,
-spacing, and radii come from `$color-*` / `$space-*` / `$radius-*`; all fonts
-from `$font-*`. No raw values or raw `font-family` strings in component SCSS.
+spacing, and radii come from CSS custom properties — `var(--color-*)` /
+`var(--space-*)` / `var(--radius-*)`; all fonts from `var(--font-*)`. No raw
+values or raw `font-family` strings in component SCSS.
 
 ## Reference images (optional)
 

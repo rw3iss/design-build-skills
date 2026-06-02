@@ -16,39 +16,48 @@ business-casual; dense but uncluttered; one accent, two neutrals.")_
 
 ## Color
 
-Defined in `styles/_variables.scss`. Document the intent here; the SCSS holds the values.
+Tokens are **CSS custom properties** declared in `:root` in `styles/_variables.scss`
+(light/default) and overridden per theme in `styles/_themes.scss`. Reference them
+in component SCSS as `var(--color-*)`. Document intent here; the SCSS holds values.
 
 | Token | Role | _(todo: value)_ |
 |---|---|---|
-| `$color-bg` | page background | |
-| `$color-surface` | raised surface | |
-| `$color-primary` | single accent — used sparingly | |
-| `$color-text` / `$color-text-muted` | text ramp | |
+| `--color-bg` | page background | |
+| `--color-surface` / `--color-surface-2` | raised surfaces | |
+| `--color-primary` / `--color-primary-fg` | single accent + its foreground | |
+| `--color-text` / `--color-text-muted` | text ramp | |
+| `--color-border` | hairline borders | |
 
-Rule: **one accent.** Semantic colors (warn / success / danger) only when something is genuinely that state.
+Rule: **one accent.** Semantic colors (`--color-danger` / `--color-success`) only when something is genuinely that state.
 
 ## Typography
 
-Font stacks live in `styles/_fonts.scss` (one `@import url(...)` for all web fonts).
+Fonts are CSS custom properties (`--font-body`, `--font-mono`, plus any you add
+such as `--font-heading`) in `styles/_variables.scss`. For web fonts, add a single
+`@import url(...)` (or `@font-face`) at the top of `_variables.scss`.
 
-| Variable | Used for | _(todo: stack)_ |
+| Token | Used for | _(todo: stack)_ |
 |---|---|---|
-| `$font-heading` | display / headings | |
-| `$font-body` | body copy | |
-| `$font-label` | labels / mono data | |
+| `--font-heading` | display / headings (add if needed) | |
+| `--font-body` | body copy | |
+| `--font-mono` | labels / numeric / code | |
 
-Rule: components reference `$font-*` variables — **never** a raw `font-family` string.
+Rule: components use `font-family: var(--font-*)` — **never** a raw `font-family` string.
 
 ## Spacing & radii
 
-Use the `$space-*` and `$radius-*` scales in `_variables.scss`. Do not introduce ad-hoc pixel values; extend the scale instead.
+Use the `--space-*` and `--radius-*` scales (CSS custom properties in
+`_variables.scss`). Breakpoints are Sass `$bp-*` vars in `_variables.scss`, used by
+the responsive mixins. Don't introduce ad-hoc pixel values; extend the scale instead.
 
 ## Component design
 
 - Prefer small, single-purpose components; break sections into discrete, reusable pieces.
-- Per-component SCSS; `.mobile.scss` companion only when the mobile variant materially differs.
+- One `Component.scss` per component, imported once at the top of the component, with real class names (no CSS modules).
+- Mobile-first: base styles target small screens; layer up with the `@include tablet` / `@include desktop` mixins from `styles/_responsive.scss`. Wrap animations in `@include respect-reduced-motion`.
 - Reuse before creating — consult [`COMPONENT_INDEX.md`](./COMPONENT_INDEX.md) first.
 
 ## Motion
 
-_(todo: easing, durations, reduced-motion policy.)_
+Motion tokens (`--ease-out`, `--ease-in-out`, `--dur-fast/med/slow`) live in
+`styles/_variables.scss`. _(todo: note any motion personality + reduced-motion policy.)_

@@ -65,8 +65,9 @@ const DRY_DIRECTIVE = `\
 - **Extend, don't clone.** When something is close, add a prop/variant/parameter
   to the existing piece instead of copying it.
 - **Keep components small and discrete.** One component = one responsibility.
-- **Tokens & fonts only.** Every color/space/radius comes from \`$color-*\` /
-  \`$space-*\` / \`$radius-*\`; every font from \`$font-*\`. No raw values, no raw
+- **Tokens & fonts only.** Every color/space/radius comes from CSS custom
+  properties — \`var(--color-*)\` / \`var(--space-*)\` / \`var(--radius-*)\`; every
+  font from \`var(--font-*)\`. No raw values, no raw
   \`font-family\` strings in component SCSS.`;
 
 // ─── Reference-image analysis (only when images present) ─────────────────────
@@ -103,8 +104,9 @@ function designLanguageSection(inputs: ComposeInputs): string {
 ## Design language — from DESIGN.md (authoritative)
 
 The app's design rules are below. Follow them. Also read the live tokens in
-\`styles/_variables.scss\` and font stacks in \`styles/_fonts.scss\`; DESIGN.md is
-the intent, the SCSS holds the values — they must stay consistent.
+\`styles/_variables.scss\` (CSS custom properties, including \`--font-*\`) and theme
+overrides in \`styles/_themes.scss\`; DESIGN.md is the intent, the SCSS holds the
+values — they must stay consistent.
 
 ${inputs.designRules.trim()}`;
   }
@@ -116,7 +118,8 @@ ${inputs.designRules.trim()}`;
 No DESIGN.md was found and this is a new app. **Establish** the design language as
 part of this build: choose the aesthetic, color ramp (one accent + neutrals),
 type stacks, spacing/radii scales, and motion policy. Set them in
-\`styles/_variables.scss\` / \`styles/_fonts.scss\`, then **write the decisions into
+CSS custom properties in \`styles/_variables.scss\` (theme overrides in
+\`styles/_themes.scss\`), then **write the decisions into
 \`DESIGN.md\`** (the seeded stub) so every later build stays consistent.`;
   }
 
@@ -124,8 +127,8 @@ type stacks, spacing/radii scales, and motion policy. Set them in
 ## Design language — derive from existing code (no DESIGN.md)
 
 No DESIGN.md was found. Derive the design language from the existing app: read
-\`styles/_variables.scss\`, \`styles/_fonts.scss\`, and a few existing components to
-learn the tokens, type, and conventions. Match them. Consider writing a DESIGN.md
+\`styles/_variables.scss\` (and \`styles/_themes.scss\`) plus a few existing components
+to learn the tokens, type, and conventions. Match them. Consider writing a DESIGN.md
 to capture what you inferred so future builds have a source of truth.`;
 }
 
@@ -134,31 +137,37 @@ to capture what you inferred so future builds have a source of truth.`;
 const TYPOGRAPHY_MINING = `\
 ## Typography (use the established stacks)
 
-Font stacks live in \`styles/_fonts.scss\`, wired into \`global.scss\`. Components
-reference \`$font-heading\` / \`$font-body\` / \`$font-label\` etc. — never a raw
-\`font-family\`.
+Fonts are CSS custom properties — \`--font-body\`, \`--font-mono\`, and any you add
+such as \`--font-heading\` — declared in \`:root\` in \`styles/_variables.scss\`.
+Components use \`font-family: var(--font-*)\`, never a raw \`font-family\` string.
 
-- **Extending an app with fonts already chosen:** reuse the existing \`$font-*\`
-  stacks. Do not introduce a new typeface unless the feature genuinely needs one
-  (and if you do, add it to \`_fonts.scss\` and note it in DESIGN.md).
+- **Extending an app with fonts already chosen:** reuse the existing \`--font-*\`
+  custom properties. Do not introduce a new typeface unless the feature genuinely
+  needs one (and if you do, add the \`--font-*\` property and note it in DESIGN.md).
 - **New app, or a deliberate type decision needed:** enumerate the text zones
   (wordmark, headings, labels, body, numeric/mono data), pick stacks per zone
   (prefer Google Fonts with a generic fallback), add ONE \`@import url(...)\` with
-  \`display=swap\` covering all weights, and set the \`$font-*\` variables. Keep an
-  alternate stack as a commented \`// alt:\` line for easy swap-outs.`;
+  \`display=swap\` at the top of \`styles/_variables.scss\`, and define the
+  \`--font-*\` custom properties for each role.`;
 
 // ─── Component + styling rules ────────────────────────────────────────────────
 
 const COMPONENT_RULES = `\
 ## Component + styling rules
 
-- Preact components with per-component SCSS (and \`.mobile.scss\` companions only
-  where the mobile variant materially differs).
+- Preact components with one per-component \`.scss\` imported once at the top of the
+  component (real class names, no CSS modules). Mobile-first: base styles target
+  small screens; layer up with \`@include tablet\` / \`@include desktop\` from
+  \`styles/_responsive.scss\`.
 - Wire any data the feature shows through the mock-data layer: add methods to
   \`src/services/api/ApiClient.ts\`, implement them in \`MockApiAdapter\`, and add
   realistic fixtures to \`src/mock/data/*.json\`. The feature must demo with no
   backend and no env vars.
-- Follow the project structure in BUILD.md (components/, pages/, lib/, etc.).`;
+- **Placement — keep pages and components separate.** A **page** (route/screen view)
+  goes in \`src/pages/<PageName>/\`; a **feature/UI component** in
+  \`src/components/<feature-or-component>/\`; a **primitive/core "common" component**
+  (Button, Input, Modal, …) in \`src/components/common/<Component>/\`. Never dump
+  everything flat into \`src/components/\`. (Honor BUILD.md if it specifies otherwise.)`;
 
 // ─── Index + docs maintenance ─────────────────────────────────────────────────
 

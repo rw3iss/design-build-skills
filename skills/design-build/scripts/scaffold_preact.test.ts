@@ -5,17 +5,20 @@ import { join } from "node:path";
 import { scaffold } from "./scaffold_preact.ts";
 
 describe("scaffold", () => {
-  it("writes the expected file tree into target dir", async () => {
+  it("writes the scaffold-preact base file tree into target dir", async () => {
     const out = mkdtempSync(join(tmpdir(), "scaf-"));
     try {
       await scaffold({ targetDir: out, appName: "my-demo" });
+      // configs live under config/
       expect(existsSync(join(out, "package.json"))).toBe(true);
-      expect(existsSync(join(out, "vite.config.ts"))).toBe(true);
+      expect(existsSync(join(out, "config/vite.config.ts"))).toBe(true);
+      expect(existsSync(join(out, "config/tsconfig.app.json"))).toBe(true);
+      // entry + styles + scaffold-preact utilities
       expect(existsSync(join(out, "src/main.tsx"))).toBe(true);
-      expect(existsSync(join(out, "src/services/api/ApiClient.ts"))).toBe(true);
-      expect(existsSync(join(out, "src/mock/MockApiAdapter.ts"))).toBe(true);
       expect(existsSync(join(out, "styles/global.scss"))).toBe(true);
-      expect(existsSync(join(out, "styles/_fonts.scss"))).toBe(true);
+      expect(existsSync(join(out, "styles/_variables.scss"))).toBe(true);
+      expect(existsSync(join(out, "src/lib/storage.ts"))).toBe(true);
+      expect(existsSync(join(out, "src/hooks/useUIState.ts"))).toBe(true);
 
       const pkg = JSON.parse(readFileSync(join(out, "package.json"), "utf-8"));
       expect(pkg.name).toBe("my-demo");
@@ -24,31 +27,62 @@ describe("scaffold", () => {
     }
   });
 
-  it("seeds the self-describing root docs and .gitignore", async () => {
+  it("carries the mandatory mock-data layer", async () => {
     const out = mkdtempSync(join(tmpdir(), "scaf-"));
     try {
       await scaffold({ targetDir: out, appName: "my-demo" });
-      expect(existsSync(join(out, "DESIGN.md"))).toBe(true);
-      expect(existsSync(join(out, "BUILD.md"))).toBe(true);
-      expect(existsSync(join(out, "COMPONENT_INDEX.md"))).toBe(true);
-      expect(existsSync(join(out, ".gitignore"))).toBe(true);
-
-      // __APP_NAME__ is interpolated into the doc stubs too.
-      expect(readFileSync(join(out, "DESIGN.md"), "utf-8")).toContain("my-demo");
-      // PLAN.md is ignored so per-build briefs don't get committed.
-      expect(readFileSync(join(out, ".gitignore"), "utf-8")).toContain("PLAN.md");
+      expect(existsSync(join(out, "src/services/api/ApiClient.ts"))).toBe(true);
+      expect(existsSync(join(out, "src/services/api/index.ts"))).toBe(true);
+      expect(existsSync(join(out, "src/mock/MockApiAdapter.ts"))).toBe(true);
+      expect(existsSync(join(out, "src/mock/data/.gitkeep"))).toBe(true);
     } finally {
       rmSync(out, { recursive: true, force: true });
     }
   });
 
-  it("does not clobber an existing DESIGN.md / BUILD.md / COMPONENT_INDEX.md", async () => {
+  it("renames gitignore/editorconfig/dockerignore and seeds the root docs", async () => {
+    const out = mkdtempSync(join(tmpdir(), "scaf-"));
+    try {
+      await scaffold({ targetDir: out, appName: "my-demo" });
+      expect(existsSync(join(out, ".gitignore"))).toBe(true);
+      expect(existsSync(join(out, ".editorconfig"))).toBe(true);
+      expect(existsSync(join(out, ".dockerignore"))).toBe(true);
+      expect(existsSync(join(out, "gitignore"))).toBe(false); // un-prefixed source not left behind
+      expect(existsSync(join(out, "DESIGN.md"))).toBe(true);
+      expect(existsSync(join(out, "BUILD.md"))).toBe(true);
+      expect(existsSync(join(out, "COMPONENT_INDEX.md"))).toBe(true);
+      // Dockerfile stays in config/
+      expect(existsSync(join(out, "config/Dockerfile"))).toBe(true);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("substitutes __APP_NAME__ and __APP_TITLE__ everywhere (no leftovers)", async () => {
+    const out = mkdtempSync(join(tmpdir(), "scaf-"));
+    try {
+      await scaffold({ targetDir: out, appName: "checkout-glass" });
+      const app = readFileSync(join(out, "src/app/App.tsx"), "utf-8");
+      expect(app).toContain("Checkout Glass"); // __APP_TITLE__ → Title Case
+      expect(readFileSync(join(out, "DESIGN.md"), "utf-8")).toContain("checkout-glass");
+      // no unsubstituted placeholders, no leftover .tmpl files
+      for (const f of ["src/app/App.tsx", "README.md", "package.json", "index.html"]) {
+        const c = readFileSync(join(out, f), "utf-8");
+        expect(c).not.toContain("__APP_NAME__");
+        expect(c).not.toContain("__APP_TITLE__");
+      }
+      expect(existsSync(join(out, "config/vite.config.ts.tmpl"))).toBe(false);
+    } finally {
+      rmSync(out, { recursive: true, force: true });
+    }
+  });
+
+  it("does not clobber existing DESIGN.md / BUILD.md / COMPONENT_INDEX.md", async () => {
     const out = mkdtempSync(join(tmpdir(), "scaf-"));
     try {
       writeFileSync(join(out, "DESIGN.md"), "MY OWN DESIGN");
       await scaffold({ targetDir: out, appName: "my-demo" });
       expect(readFileSync(join(out, "DESIGN.md"), "utf-8")).toBe("MY OWN DESIGN");
-      // but the ones that didn't exist are still seeded
       expect(existsSync(join(out, "BUILD.md"))).toBe(true);
     } finally {
       rmSync(out, { recursive: true, force: true });

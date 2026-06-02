@@ -55,8 +55,8 @@ against the reuse manifest:
    instead of large inlined blocks.
 
 **DRY is non-negotiable:** no duplicated tokens, mixins, classes, utilities, or
-components; values come from `$color-*` / `$space-*` / `$radius-*` and fonts from
-`$font-*`.
+components; values come from CSS custom properties — `var(--color-*)` /
+`var(--space-*)` / `var(--radius-*)` — and fonts from `var(--font-*)`.
 
 After building, the skill updates `COMPONENT_INDEX.md` and notes any notable new
 shared component/util/style in the README / CLAUDE.md.

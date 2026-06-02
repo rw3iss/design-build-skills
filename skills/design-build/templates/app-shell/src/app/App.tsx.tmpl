@@ -1,11 +1,11 @@
-// Minimal shell. Claude fills this in based on the design images + PLAN.md.
-import type { JSX } from "preact";
+import type { JSX } from 'preact';
+import './App.scss';
 
 export function App(): JSX.Element {
-  return (
-    <div class="app">
-      <h1>__APP_NAME__</h1>
-      <p>Scaffold ready. See PLAN.md.</p>
-    </div>
-  );
+	return (
+		<main class="app">
+			<h1>__APP_TITLE__</h1>
+			<p>Scaffold ready. Start building components under <code>src/components/</code>.</p>
+		</main>
+	);
 }
