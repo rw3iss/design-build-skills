@@ -1,11 +1,15 @@
 {
-  "name": "design-build",
+  "name": "design",
   "version": "0.0.1-alpha",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },
   "dependencies": {
-    "zod": "^3.23.8"
+    "discord.js": "^14.16.3",
+    "sharp": "^0.33.5",
+    "zod": "^3.23.8",
+    "dotenv": "^16.4.7",
+    "undici": "^7.2.0"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
@@ -15,6 +19,7 @@
   },
   "scripts": {
     "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   }
 }

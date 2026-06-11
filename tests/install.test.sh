@@ -22,7 +22,7 @@ rm -rf "$tmp"
 
 # 3. --skill foo is rejected
 out=$(./install.sh --skill foo --dry-run 2>&1 || true)
-echo "$out" | grep -q "must be 'designer' or 'design-build'" || fail "invalid --skill not rejected, got: $out"
+echo "$out" | grep -q "must be 'design' or 'build'" || fail "invalid --skill not rejected, got: $out"
 pass "install.sh rejects invalid --skill"
 
 # 4. uninstall.sh --help works

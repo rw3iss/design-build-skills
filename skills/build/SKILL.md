@@ -1,5 +1,5 @@
 ---
-name: design-build
+name: build
 description: >-
   Build or extend a Preact + TypeScript + SCSS app from a page/feature request.
   The gateway for "build the app", "add a settings page", "build a comments
@@ -14,7 +14,7 @@ description: >-
   Does not produce backend code or tests.
 ---
 
-# design-build skill
+# Build skill
 
 The gateway for building new pages and features into a Preact + TypeScript + SCSS
 app. It figures out **what to build**, **where** (new app vs. extend the existing
@@ -30,7 +30,7 @@ most invocations won't have any. The authoritative inputs are the project's
 1. **`DESIGN.md`** (walked up from CWD) — design rules: tokens, theme, typography, component design, aesthetic. **Always consulted when present.**
 2. **`BUILD.md`** (walked up from CWD) — build rules: project structure, code quality, tooling. **Always consulted when present.**
 3. **`COMPONENT_INDEX.md`** (at the app root) — the reuse manifest of existing components, shared utilities/hooks, and shared SCSS. Read **before** building anything.
-4. **Reference images** — optional; used only if the user supplies a folder, file paths, or indices from a prior `designer` run.
+4. **Reference images** — optional; used only if the user supplies a folder, file paths, or indices from a prior `design` run.
 5. **The request** — the page/feature/component to build, plus any extra guidance.
 
 ## Target: new app vs. extend (CWD is the project)
@@ -61,7 +61,7 @@ codebase is the common case.
    `operation === "new"`, **invoke the `scaffold-preact` skill** (Skill tool:
    `scaffold-preact`) to lay down the base app, rather than scaffolding by hand.
    See [Delegated scaffolding](#delegated-scaffolding-new-apps) below for exactly
-   what to pass. After it returns, **layer design-build's essentials on top**:
+   what to pass. After it returns, **layer build's essentials on top**:
    - Ensure the mandatory **mock-data layer** exists (`ApiClient` +
      `MockApiAdapter` + `src/mock/data/*.json`) — see below.
    - Seed `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` if still absent (so the
@@ -76,11 +76,11 @@ codebase is the common case.
 
 ## Delegated scaffolding (new apps)
 
-When `operation === "new"`, design-build does **not** hand-roll the framework — it
+When `operation === "new"`, build does **not** hand-roll the framework — it
 delegates to the **`scaffold-preact`** skill and then customizes the result with
 this project's request. The base scaffold (Preact + TS + traditional SCSS, configs
 in `config/`, tab indentation, a persisted UI-state utility, optional caching) is
-`scaffold-preact`'s job; the design intent and the feature are design-build's.
+`scaffold-preact`'s job; the design intent and the feature are build's.
 
 **Invoke `scaffold-preact`** (via the Skill tool) with:
 
@@ -93,15 +93,15 @@ in `config/`, tab indentation, a persisted UI-state utility, optional caching) i
 | input query | the build objective + any extra guidance (drives feature parsing: theme, router, caching, etc.) |
 | reference images | `imagePaths` (if any) — aesthetic reference only |
 
-Then continue with design-build's own steps (mock-data layer, then build the
-feature per `PLAN.md`). `scaffold-preact` produces a runnable base; design-build
+Then continue with build's own steps (mock-data layer, then build the
+feature per `PLAN.md`). `scaffold-preact` produces a runnable base; build
 fills in the feature-specific components.
 
 **Fallback.** If the `scaffold-preact` skill isn't installed/available, fall back
 to the bundled `scaffold_preact.ts` script (`targetDir = appRoot`). Its template is
 a mirror of the `scaffold-preact` base (same configs-in-`config/`, traditional
 SCSS, tab indentation, persisted UI-state utility in `src/lib/storage.ts` +
-`src/hooks/useUIState.ts`) plus design-build's mandatory mock-data layer and the
+`src/hooks/useUIState.ts`) plus build's mandatory mock-data layer and the
 starter `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` (never clobbering existing
 ones).
 
@@ -165,7 +165,7 @@ reads first and updates last.
 
 Sometimes the user just wants to **establish the rule files** in a project without
 building anything — "give this project a BUILD.md", "generate a DESIGN.md for my
-app", "bootstrap this repo with design-build docs". Triggers: "bootstrap", "just
+app", "bootstrap this repo with build docs". Triggers: "bootstrap", "just
 generate a BUILD.md / DESIGN.md", "set up the docs", "no code".
 
 Run `bootstrap_docs.ts` — it drops the template stubs (`DESIGN.md` / `BUILD.md` /
@@ -210,7 +210,7 @@ is to make the project-specific parts accurate.
 ### `select_images.ts` (optional)
 
 ```jsonc
-{ "mode": "indices", "imagesDir": "designs/checkout/images", "indices": [2, 4], "preferUpscaled": false } // A — prior designer run
+{ "mode": "indices", "imagesDir": "designs/checkout/images", "indices": [2, 4], "preferUpscaled": false } // A — prior design run
 { "mode": "dir", "dir": "/path/to/any/image/folder" }                                                    // B — any folder
 { "mode": "paths", "paths": ["/abs/img1.png", "/abs/img2.jpg"] }                                          // C — explicit paths
 // → { "status": "ok", "imagePaths": ["..."] }
@@ -243,6 +243,6 @@ is to make the project-specific parts accurate.
 ## Shared utilities
 
 `shared.ts` re-exports path/name helpers (`toRequestName`, `findDesignMd`,
-`readIfExists`) from `../designer/lib/`, plus the target resolver
-(`resolveTarget`, `findAppRoot`). The **designer workflow** need not have run —
+`readIfExists`) from `../design/lib/`, plus the target resolver
+(`resolveTarget`, `findAppRoot`). The **design workflow** need not have run —
 only the shared library files must be present. Both skills install together.

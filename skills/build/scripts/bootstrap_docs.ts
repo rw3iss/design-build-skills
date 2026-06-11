@@ -4,9 +4,9 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { toRequestName } from "../shared.ts";
 
-// Bootstrap an *existing* project with the design-build doc files only — no app
+// Bootstrap an *existing* project with the build doc files only — no app
 // scaffold, no code. This is the "give my project a DESIGN.md / BUILD.md /
-// COMPONENT_INDEX.md from the template" entrypoint, so design-build (or the user)
+// COMPONENT_INDEX.md from the template" entrypoint, so build (or the user)
 // can establish the rule files standalone, then tailor them.
 
 const here = fileURLToPath(new URL(".", import.meta.url));

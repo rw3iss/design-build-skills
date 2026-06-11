@@ -2,8 +2,8 @@
 
 Two Claude Code skills that work together to turn a design brief into a working Preact app:
 
-1. **`designer`** — takes a prompt, generates design images via Midjourney through a Discord bot, saves them into a per-request folder.
-2. **`design-build`** — the gateway for building pages and features into a Preact + TypeScript + SCSS app. It reads the project's `DESIGN.md` / `BUILD.md` rules and a `COMPONENT_INDEX.md` reuse manifest, then either scaffolds a new app or extends the existing one in place — reusing existing components and styles before creating anything new. Reference images are optional. Includes a mandatory mock-data layer so the output is demoable with no backend.
+1. **`design`** — takes a prompt, generates design images via Midjourney through a Discord bot, saves them into a per-request folder.
+2. **`build`** — the gateway for building pages and features into a Preact + TypeScript + SCSS app. It reads the project's `DESIGN.md` / `BUILD.md` rules and a `COMPONENT_INDEX.md` reuse manifest, then either scaffolds a new app or extends the existing one in place — reusing existing components and styles before creating anything new. Reference images are optional. Includes a mandatory mock-data layer so the output is demoable with no backend.
 
 Status: **implemented, v0.0.1-alpha.** Design doc: [`docs/specs/2026-04-17-design-to-app-workflow-design.md`](./docs/specs/2026-04-17-design-to-app-workflow-design.md). Implementation plan: [`docs/plans/2026-04-17-design-to-app-workflow-implementation.md`](./docs/plans/2026-04-17-design-to-app-workflow-implementation.md).
 
@@ -31,14 +31,14 @@ The script clones this repo into a local cache, copies the skill files into `~/.
 
 Install adds two manual commands (refreshed on every `--update`):
 
-- **`/design <brief>`** — evoke the `designer` skill to generate design images. e.g. `/design a luxury watch PDP, cream + champagne gold, editorial serif`
-- **`/build <request>`** — evoke the `design-build` skill to build/extend an app, or bootstrap rule files. e.g. `/build add a settings page` · `/build from images 2 and 4` · `/build a BUILD.md`
+- **`/design <brief>`** — evoke the `design` skill to generate design images. e.g. `/design a luxury watch PDP, cream + champagne gold, editorial serif`
+- **`/build <request>`** — evoke the `build` skill to build/extend an app, or bootstrap rule files. e.g. `/build add a settings page` · `/build from images 2 and 4` · `/build a BUILD.md`
 
 ---
 
-**`design-build` is ready to use immediately after install** — no Discord credentials or other setup required. Point it at a request ("build the app", "add a settings page") in any project; reference images are optional.
+**`build` is ready to use immediately after install** — no Discord credentials or other setup required. Point it at a request ("build the app", "add a settings page") in any project; reference images are optional.
 
-The Discord setup below is only needed if you also want the **`designer`** skill (Midjourney image generation).
+The Discord setup below is only needed if you also want the **`design`** skill (Midjourney image generation).
 
 ---
 
@@ -65,24 +65,24 @@ npm run update
 curl -fsSL https://raw.githubusercontent.com/rw3iss/design-build-skills/main/install.sh | bash -s -- --update
 
 # Update a single skill only
-~/.cache/design-build-skills/install.sh --update --skill design-build
-~/.cache/design-build-skills/install.sh --update --skill designer
+~/.cache/design-build-skills/install.sh --update --skill build
+~/.cache/design-build-skills/install.sh --update --skill design
 ```
 
 `--update` does a shallow re-fetch, re-rsync's both skill directories, reruns `npm ci`, and re-syncs the `/design` + `/build` commands. Your `~/.config/designer/config.json` is never modified.
 
 ---
 
-## Discord setup (one-time, `designer` skill only)
+## Discord setup (one-time, `design` skill only)
 
 <details>
-<summary><strong>Click to expand the one-time Discord setup</strong> — only needed for the <code>designer</code> image-generation skill</summary>
+<summary><strong>Click to expand the one-time Discord setup</strong> — only needed for the <code>design</code> image-generation skill</summary>
 
 <br>
 
-> **Skip this section if you only want `design-build`** (build/extend a Preact app, no Midjourney). Run `designer setup --skip-discord` instead to verify tools are in place.
+> **Skip this section if you only want `build`** (build/extend a Preact app, no Midjourney). Run `designer setup --skip-discord` instead to verify tools are in place.
 
-Before `designer` can run, you need: a Discord application with a bot, a server you control, both your custom bot **and** the Midjourney bot in that server, and a handful of IDs.
+Before `design` can run, you need: a Discord application with a bot, a server you control, both your custom bot **and** the Midjourney bot in that server, and a handful of IDs.
 
 ### Step 1 — Create a Discord application + bot token
 
@@ -123,7 +123,7 @@ https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.c
 ### Step 6 — Run setup
 
 ```bash
-~/.claude/skills/designer/bin/designer setup
+~/.claude/skills/design/bin/designer setup
 ```
 
 It'll prompt for the four values — bot token (Step 1), server ID (Step 5), channel ID (Step 5), and trigger mode. Default: `manual` (safe, ToS-compliant). `user-token` is an opt-in automated mode that violates Discord's ToS — only pick it if you accept account-ban risk on your personal Discord.
@@ -147,13 +147,13 @@ Config is saved to `~/.config/designer/config.json`. Env overrides: `DESIGNER_DI
 
 ## What it does, quickly
 
-- `designer` reads a brief, walks up from your CWD for a `DESIGN.md`, merges project rules into a Midjourney-ready prompt, fires `/imagine` through a bot you own, waits for the reply, downloads the 2×2 grid, splits it into four variant images, and stores everything under `./designs/<request-name>/`.
+- `design` reads a brief, walks up from your CWD for a `DESIGN.md`, merges project rules into a Midjourney-ready prompt, fires `/imagine` through a bot you own, waits for the reply, downloads the 2×2 grid, splits it into four variant images, and stores everything under `./designs/<request-name>/`.
 - `designer upscale <request-name> <indices...>` goes back and clicks U1–U4 on the original Midjourney post to get true high-res upscales of the variants you pick.
-- `design-build` is the gateway for building pages/features. It walks up from the CWD for the project's `DESIGN.md` (design rules) and `BUILD.md` (build rules), reads the `COMPONENT_INDEX.md` reuse manifest, and resolves a target: an existing app (found by walking up for `package.json`) is **extended in place**; otherwise a **new app is scaffolded** at the CWD. It analyzes the request (goal, then granular pieces), matches each piece against the index to reuse/adapt/create, writes a `PLAN.md` brief, and builds — DRY-first, modular, mock-data-backed, then updates the index. Reference images are optional; when supplied they add an **exact** (replicate) or **creative** (mood board) follow mode. The `designer` workflow does not need to have been run.
+- `build` is the gateway for building pages/features. It walks up from the CWD for the project's `DESIGN.md` (design rules) and `BUILD.md` (build rules), reads the `COMPONENT_INDEX.md` reuse manifest, and resolves a target: an existing app (found by walking up for `package.json`) is **extended in place**; otherwise a **new app is scaffolded** at the CWD. It analyzes the request (goal, then granular pieces), matches each piece against the index to reuse/adapt/create, writes a `PLAN.md` brief, and builds — DRY-first, modular, mock-data-backed, then updates the index. Reference images are optional; when supplied they add an **exact** (replicate) or **creative** (mood board) follow mode. The `design` workflow does not need to have been run.
 
 ### Companion skill: `scaffold-preact`
 
-For **new** apps, `design-build` delegates the base scaffold to the separate `scaffold-preact` skill when it's installed — it produces the Preact + TypeScript + traditional-SCSS foundation (tab indentation, a persisted UI-state hook, optional client-side caching), which `design-build` then customizes with the project's design rules and the requested feature. If `scaffold-preact` isn't installed, `design-build` falls back to its own bundled scaffolder, so it works either way. Install `scaffold-preact` separately for the richer base.
+For **new** apps, `build` delegates the base scaffold to the separate `scaffold-preact` skill when it's installed — it produces the Preact + TypeScript + traditional-SCSS foundation (tab indentation, a persisted UI-state hook, optional client-side caching), which `build` then customizes with the project's design rules and the requested feature. If `scaffold-preact` isn't installed, `build` falls back to its own bundled scaffolder, so it works either way. Install `scaffold-preact` separately for the richer base.
 
 ---
 

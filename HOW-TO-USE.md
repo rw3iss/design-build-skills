@@ -1,11 +1,11 @@
 # How to Use design-build-skills
 
-Two Claude Code skills you invoke by talking to Claude naturally — no slash commands needed. `designer` generates Midjourney images from a brief; `design-build` builds or extends a runnable Preact app from a page/feature request (reference images optional). They can be used together or independently.
+Two Claude Code skills you invoke by talking to Claude naturally — no slash commands needed. `design` generates Midjourney images from a brief; `build` builds or extends a runnable Preact app from a page/feature request (reference images optional). They can be used together or independently.
 
 ---
 
 <details open>
-<summary><strong>1. designer — Generate design images</strong></summary>
+<summary><strong>1. design — Generate design images</strong></summary>
 
 Invoke by describing what you want. Claude will prompt Midjourney via your Discord bot, wait for the reply, split the 2×2 grid into four variants, and save them under `./designs/<request-name>/images/`.
 
@@ -59,7 +59,7 @@ Set during `designer setup`. Can be overridden per-session via `DESIGNER_TRIGGER
 <details open>
 <summary><strong>2. DESIGN.md — Project-wide design rules</strong></summary>
 
-Place a `DESIGN.md` file in your project root (or any ancestor directory). Claude walks up from the current working directory to find the first one. Its contents are automatically injected into every `designer` prompt for that project.
+Place a `DESIGN.md` file in your project root (or any ancestor directory). Claude walks up from the current working directory to find the first one. Its contents are automatically injected into every `design` prompt for that project.
 
 **What to put in it:**
 ```markdown
@@ -94,7 +94,7 @@ Use ./brand/DESIGN-v2.md instead of the project default.
 ---
 
 <details open>
-<summary><strong>3. design-build — Build or extend a Preact app</strong></summary>
+<summary><strong>3. build — Build or extend a Preact app</strong></summary>
 
 The gateway for building pages and features: "build the app", "add a settings page", "build a comments widget", "add a component". Claude reads the project's `DESIGN.md` + `BUILD.md` rules and the `COMPONENT_INDEX.md` reuse manifest, then either **scaffolds a new app** (when none exists) or **extends the existing one in place** — analyzing the request, reusing/extending existing components and styles before creating anything new, writing a `PLAN.md` brief, and building with a mandatory mock-data layer so the result runs with no backend.
 
@@ -117,7 +117,7 @@ Start a new app: a marketing landing page with hero + pricing.
 
 ### Supplying reference images (optional)
 
-**A — Indices from a prior designer run**
+**A — Indices from a prior design run**
 ```
 Build from images 2 and 4.
 Build from image 3 with rounder buttons and more padding.
@@ -177,7 +177,7 @@ Instead of a layout inventory, Claude extracts: the color story (palette + relat
 <details open>
 <summary><strong>4. BUILD.md — Project-wide build rules</strong></summary>
 
-Place a `BUILD.md` in your project root (same walk-up mechanism as `DESIGN.md`). Its contents are injected into every `design-build` plan for that project.
+Place a `BUILD.md` in your project root (same walk-up mechanism as `DESIGN.md`). Its contents are injected into every `build` plan for that project.
 
 **What to put in it:**
 ```markdown
@@ -196,7 +196,7 @@ Place a `BUILD.md` in your project root (same walk-up mechanism as `DESIGN.md`).
 
 `BUILD.md` is read at the start of every build and inlined into the generated `PLAN.md` (written to the app root) under a "Build rules" section. Claude applies the rules when writing every component, service, and fixture.
 
-For **new** apps, design-build seeds a starter `BUILD.md` (alongside `DESIGN.md` and `COMPONENT_INDEX.md`) that already encodes the default client-app rules — SOLID components, hoist/centralize utilities & config, intelligent non-blocking components with lazy-loading states (initial → skeleton → data), 100ms-throttled input handlers, `COMPONENT_INDEX.md` upkeep, and a README data-layer note. Edit it to match your project.
+For **new** apps, build seeds a starter `BUILD.md` (alongside `DESIGN.md` and `COMPONENT_INDEX.md`) that already encodes the default client-app rules — SOLID components, hoist/centralize utilities & config, intelligent non-blocking components with lazy-loading states (initial → skeleton → data), 100ms-throttled input handlers, `COMPONENT_INDEX.md` upkeep, and a README data-layer note. Edit it to match your project.
 
 </details>
 
@@ -289,13 +289,13 @@ Build from 1 and 4. Exact mode. Include a .mobile.scss companion.
 <details open>
 <summary><strong>6. Tips & advanced usage</strong></summary>
 
-**Output locations.** `designer` images land in `./designs/<request-name>/images/` relative to where Claude Code was started. `design-build` builds into the **current project** — it extends the app it finds by walking up from your CWD, or scaffolds a new one at the CWD. So launch Claude from inside the project you want to build into. To override the target for a specific request, just say so:
+**Output locations.** `design` images land in `./designs/<request-name>/images/` relative to where Claude Code was started. `build` builds into the **current project** — it extends the app it finds by walking up from your CWD, or scaffolds a new one at the CWD. So launch Claude from inside the project you want to build into. To override the target for a specific request, just say so:
 ```
 Design a checkout page. Use ~/Sites/myproject as the project root.
 Add a settings page. The project is at ~/Sites/clientX/.
 ```
 
-**Chain designer → design-build in one conversation.** You don't need to start a new session. After `designer` shows the four variants, just say "build from 2" and `design-build` picks up immediately, reusing the same request name and `prompts/original.md`.
+**Chain design → build in one conversation.** You don't need to start a new session. After `design` shows the four variants, just say "build from 2" and `build` picks up immediately, reusing the same request name and `prompts/original.md`.
 
 **Upscale before building for detail-heavy UIs.** Typography, icon sizes, and micro-spacing are easier to read at full res. `Upscale 2 and 4` before `build from them` adds ~10 seconds and meaningfully improves font matching accuracy.
 
@@ -318,7 +318,7 @@ Build from ~/Desktop/figma-export-v3.png — exact mode.
 <details>
 <summary>Directory layout reference</summary>
 
-**`designer`** writes only image artifacts under `designs/<request-name>/`:
+**`design`** writes only image artifacts under `designs/<request-name>/`:
 
 ```
 designs/
@@ -334,7 +334,7 @@ designs/
       02-up.png            ← upscaled variants (if requested)
 ```
 
-**`design-build`** builds into your **project** (not under `designs/`). A new app
+**`build`** builds into your **project** (not under `designs/`). A new app
 is scaffolded at the app root; an existing one is extended in place:
 
 ```
@@ -364,25 +364,25 @@ These are useful if you want to debug a step in isolation, inspect what a script
 
 ```bash
 # Resolve the target: new vs extend, app root, which rule files exist
-npx tsx ~/.claude/skills/design-build/scripts/resolve_target.ts \
+npx tsx ~/.claude/skills/build/scripts/resolve_target.ts \
   '{"projectCwd":".","intent":"auto"}'
 
 # Resolve reference image paths (optional — only when supplying images)
-npx tsx ~/.claude/skills/design-build/scripts/select_images.ts \
+npx tsx ~/.claude/skills/build/scripts/select_images.ts \
   '{"mode":"dir","dir":"./mockups/checkout"}'
-npx tsx ~/.claude/skills/design-build/scripts/select_images.ts \
+npx tsx ~/.claude/skills/build/scripts/select_images.ts \
   '{"mode":"paths","paths":["./design1.png","./design2.png"]}'
 
 # Write the build brief (PLAN.md) — no images, design-rules-first
-npx tsx ~/.claude/skills/design-build/scripts/build_plan.ts \
+npx tsx ~/.claude/skills/build/scripts/build_plan.ts \
   '{"request":"settings-page","projectCwd":".","objective":"add a settings page","intent":"auto"}'
 
 # Write the build brief with reference images (exact follow mode)
-npx tsx ~/.claude/skills/design-build/scripts/build_plan.ts \
+npx tsx ~/.claude/skills/build/scripts/build_plan.ts \
   '{"request":"checkout","projectCwd":".","objective":"build the checkout","imagePaths":["/abs/path/img.png"],"imageFollowMode":"exact"}'
 
 # Fallback scaffolder (used only when the scaffold-preact skill isn't installed)
-npx tsx ~/.claude/skills/design-build/scripts/scaffold_preact.ts \
+npx tsx ~/.claude/skills/build/scripts/scaffold_preact.ts \
   '{"targetDir":".","appName":"my-app"}'
 ```
 

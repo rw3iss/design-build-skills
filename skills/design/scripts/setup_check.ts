@@ -11,7 +11,7 @@ import { stdin, stdout } from "node:process";
 const MJ_BOT_ID = "936929561302675456";
 
 // --skip-discord: verify tools are installed without touching Discord.
-// Useful for users who only want to use design-build.
+// Useful for users who only want to use build.
 const SKIP_DISCORD = process.argv.includes("--skip-discord");
 
 async function prompt(rl: readline.Interface, label: string, existing?: string): Promise<string> {
@@ -22,8 +22,8 @@ async function prompt(rl: readline.Interface, label: string, existing?: string):
 
 function checkToolsOnly(): void { // sync — no async ops needed
   const here = fileURLToPath(new URL(".", import.meta.url));
-  const designerLib = resolve(here, "..", "lib");
-  const designBuildLib = resolve(here, "..", "..", "design-build", "scripts");
+  const designLib = resolve(here, "..", "lib");
+  const designBuildLib = resolve(here, "..", "..", "build", "scripts");
 
   console.error(`
 ──────────────────────────────────────────────────────────────────
@@ -33,19 +33,19 @@ function checkToolsOnly(): void { // sync — no async ops needed
 
   let ok = true;
 
-  // Check designer lib
-  if (existsSync(designerLib)) {
-    console.error(`  ✓ designer lib present at ${designerLib}`);
+  // Check design lib
+  if (existsSync(designLib)) {
+    console.error(`  ✓ design lib present at ${designLib}`);
   } else {
-    console.error(`  ✗ designer lib MISSING at ${designerLib}`);
+    console.error(`  ✗ design lib MISSING at ${designLib}`);
     ok = false;
   }
 
-  // Check design-build scripts
+  // Check build scripts
   if (existsSync(designBuildLib)) {
-    console.error(`  ✓ design-build scripts present at ${designBuildLib}`);
+    console.error(`  ✓ build scripts present at ${designBuildLib}`);
   } else {
-    console.error(`  ✗ design-build scripts MISSING at ${designBuildLib}`);
+    console.error(`  ✗ build scripts MISSING at ${designBuildLib}`);
     ok = false;
   }
 
@@ -60,9 +60,9 @@ function checkToolsOnly(): void { // sync — no async ops needed
 
   const cfgPath = defaultConfigPath();
   if (existsSync(cfgPath)) {
-    console.error(`  ✓ designer config present at ${cfgPath}`);
+    console.error(`  ✓ design config present at ${cfgPath}`);
   } else {
-    console.error(`  · no designer config (${cfgPath}) — that's fine if you're only using design-build`);
+    console.error(`  · no design config (${cfgPath}) — that's fine if you're only using build`);
   }
 
   if (!ok) {
@@ -74,12 +74,12 @@ function checkToolsOnly(): void { // sync — no async ops needed
   }
 
   console.error(`
-  ✓ design-build is ready to use — no Discord setup required.
+  ✓ build is ready to use — no Discord setup required.
     Give it any image (file path, folder, or indices from a prior
-    designer run) and Claude will scaffold a Preact app from it.
+    design run) and Claude will scaffold a Preact app from it.
 
-  To use the designer skill (Midjourney image generation), also run:
-    ~/.claude/skills/designer/bin/designer setup
+  To use the design skill (Midjourney image generation), also run:
+    ~/.claude/skills/design/bin/designer setup
 ──────────────────────────────────────────────────────────────────
 `);
 }
@@ -100,7 +100,7 @@ async function main() {
 
   console.error(`
 ──────────────────────────────────────────────────────────────────
-  Designer setup
+  Design setup
 ──────────────────────────────────────────────────────────────────
 
   You'll be asked for three Discord values. Here's where to get each:
@@ -200,7 +200,7 @@ async function main() {
     capture the command id from browser DevTools (Network tab →
     request to /interactions), then edit $HOME/.config/designer/config.json
     and set midjourneyImagineCommandId, OR set the env var
-    DESIGNER_MJ_IMAGINE_ID before running designer commands.
+    DESIGNER_MJ_IMAGINE_ID before running design commands.
 `);
       }
     }
@@ -232,7 +232,7 @@ function diagnose(msg: string): string | null {
       2. Click your application → left sidebar → "Bot"
       3. Scroll to "Privileged Gateway Intents"
       4. TOGGLE ON:  [x] Message Content Intent
-      5. Re-run:  ~/.claude/skills/designer/bin/designer setup
+      5. Re-run:  ~/.claude/skills/design/bin/designer setup
 `;
   }
   if (/TokenInvalid|An invalid token was provided|401: Unauthorized/i.test(msg)) {

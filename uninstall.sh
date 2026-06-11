@@ -24,7 +24,7 @@ done
 
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 
-for name in designer design-build; do
+for name in design build; do
   dst="$INSTALL_ROOT/$name"
   if [[ -d "$dst" ]]; then
     log "removing $dst"

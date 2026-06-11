@@ -18,7 +18,7 @@ usage() {
 Usage: install.sh [options]
   --update                  Re-fetch and re-install (idempotent)
   --ref <sha|tag|branch>    Pin to a revision (default: \$REPO_REF or main)
-  --skill <name>            Only install one of: designer, design-build
+  --skill <name>            Only install one of: design, build
   --local <path>            Install from a local checkout (skip git fetch)
   --dry-run                 Print actions without touching disk
   -h, --help                Show this help
@@ -73,8 +73,8 @@ preflight() {
 
   if [[ -n "$SKILL_FILTER" ]]; then
     case "$SKILL_FILTER" in
-      designer|design-build) ;;
-      *) die "--skill must be 'designer' or 'design-build' (got: $SKILL_FILTER)";;
+      design|build) ;;
+      *) die "--skill must be 'design' or 'build' (got: $SKILL_FILTER)";;
     esac
   fi
 }
@@ -112,7 +112,7 @@ fetch_source() {
 }
 
 install_skills() {
-  local skills=(designer design-build)
+  local skills=(design build)
   if [[ -n "$SKILL_FILTER" ]]; then
     skills=("$SKILL_FILTER")
   fi
@@ -152,7 +152,7 @@ install_skills() {
 
 # Install the /design and /build slash commands. Runs on both fresh installs and
 # --update (so existing installations pick up new/changed commands), and respects
-# --skill (designer → /design, design-build → /build). cp overwrites so updates
+# --skill (design → /design, build → /build). cp overwrites so updates
 # refresh the command bodies.
 install_commands() {
   local src_dir="$SOURCE_DIR/commands"
@@ -163,8 +163,8 @@ install_commands() {
 
   local cmds=(design.md build.md)
   case "$SKILL_FILTER" in
-    designer)     cmds=(design.md);;
-    design-build) cmds=(build.md);;
+    design)     cmds=(design.md);;
+    build) cmds=(build.md);;
   esac
 
   run "mkdir -p '$COMMANDS_ROOT'"
@@ -182,7 +182,7 @@ post_install() {
   local config="$HOME/.config/designer/config.json"
   printf '\n'
   log "installed skills:"
-  for name in designer design-build; do
+  for name in design build; do
     if [[ -d "$INSTALL_ROOT/$name" ]]; then
       local v="unknown"
       [[ -f "$INSTALL_ROOT/$name/VERSION" ]] && v=$(cat "$INSTALL_ROOT/$name/VERSION")
@@ -194,23 +194,23 @@ post_install() {
   done
   printf '\n'
 
-  # design-build works immediately — no Discord setup needed.
-  if [[ -z "$SKILL_FILTER" || "$SKILL_FILTER" == "design-build" ]]; then
-    printf '  design-build is ready to use right now — no Discord setup required.\n'
+  # build works immediately — no Discord setup needed.
+  if [[ -z "$SKILL_FILTER" || "$SKILL_FILTER" == "build" ]]; then
+    printf '  build is ready to use right now — no Discord setup required.\n'
     printf '  Give it any image (file path, folder, or indices from a prior\n'
-    printf '  designer run) and Claude will scaffold a Preact app from it.\n\n'
+    printf '  design run) and Claude will scaffold a Preact app from it.\n\n'
   fi
 
   if [[ ! -f "$config" ]]; then
-    if [[ "$SKILL_FILTER" == "design-build" ]]; then
-      printf '  To also use the designer skill (Midjourney image generation), install\n'
-      printf '  it and run:  ~/.claude/skills/designer/bin/designer setup\n\n'
+    if [[ "$SKILL_FILTER" == "build" ]]; then
+      printf '  To also use the design skill (Midjourney image generation), install\n'
+      printf '  it and run:  ~/.claude/skills/design/bin/designer setup\n\n'
       return
     fi
-    log "designer skill: one-time Discord setup required for image generation"
+    log "design skill: one-time Discord setup required for image generation"
     cat <<EOF
 
-  You need three things in place to use the designer skill:
+  You need three things in place to use the design skill:
     (a) a Discord application with a bot (in the developer portal)
     (b) a Discord server you own, with both your custom bot AND
         the Midjourney bot invited into it
@@ -268,7 +268,7 @@ post_install() {
   ─────────────────────────────────────────────────────────────────────
   STEP 5 — Run the setup check
   ─────────────────────────────────────────────────────────────────────
-    ~/.claude/skills/designer/bin/designer setup
+    ~/.claude/skills/design/bin/designer setup
 
     It will ask for:
       • Your bot token        (from STEP 1)
@@ -291,10 +291,10 @@ post_install() {
 
 EOF
   else
-    log "config present at $config — you're ready to use the designer skill"
+    log "config present at $config — you're ready to use the design skill"
     printf '\n'
     printf 'To re-verify Discord connectivity, or to change trigger mode:\n'
-    printf '  ~/.claude/skills/designer/bin/designer setup\n\n'
+    printf '  ~/.claude/skills/design/bin/designer setup\n\n'
   fi
 }
 

@@ -1,13 +1,13 @@
-# designer (Claude Code skill)
+# design (Claude Code skill)
 
-Design image generation via Midjourney through a user-owned Discord bot. Installed into `~/.claude/skills/designer/` by the `design-build-skills` installer.
+Design image generation via Midjourney through a user-owned Discord bot. Installed into `~/.claude/skills/design/` by the `design-build-skills` installer.
 
 ## Setup (once)
 
 1. At https://discord.com/developers/applications, create an application, then a Bot. Enable **"Message Content Intent"**.
 2. OAuth2 URL Generator → scopes `bot` + `applications.commands`, permissions: Read Messages, Read Message History, Use Application Commands, Send Messages. Invite to your server.
 3. Subscribe to Midjourney, invite the Midjourney bot to your server.
-4. Run `~/.claude/skills/designer/bin/designer setup` and follow the prompts.
+4. Run `~/.claude/skills/design/bin/designer setup` and follow the prompts.
 
 Config is stored at `~/.config/designer/config.json`. Env-var overrides:
 
@@ -28,14 +28,14 @@ Config is stored at `~/.config/designer/config.json`. Env-var overrides:
 
 ## Updating
 
-From inside Claude Code, run **`/build update`** to refresh both skills (`designer` +
-`design-build`) and the `/design` + `/build` commands to the latest — no restart
+From inside Claude Code, run **`/build update`** to refresh both skills (`design` +
+`build`) and the `/design` + `/build` commands to the latest — no restart
 needed. Equivalent on the CLI: `~/.cache/design-build-skills/install.sh --update`.
 
 ## Running tests
 
 ```bash
-cd ~/.claude/skills/designer
+cd ~/.claude/skills/design
 npm test
 ```
 

@@ -39,7 +39,7 @@ Commands:
   setup [--skip-discord]   Discord + Midjourney setup (full).
                            --skip-discord: verify tools only — no Discord
                            credentials needed. Use this if you only want
-                           design-build (image → Preact app) without MJ.
+                           build (image → Preact app) without MJ.
   generate '<json>'        Trigger /imagine, listen, download, split grid
   upscale '<json>'         Click U1..U4 on a stored message for hi-res
   prepare-prompt '<json>'  Assemble prompt from brief + DESIGN.md + flags

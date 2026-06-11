@@ -8,7 +8,7 @@ export interface SelectionOptions {
 
 const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
-// Resolve by numeric indices from a designs/<request>/images/ dir (existing designer-phase output).
+// Resolve by numeric indices from a designs/<request>/images/ dir (existing design-phase output).
 export function resolveSelection(
   imagesDir: string,
   indices: number[],

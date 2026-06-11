@@ -9,7 +9,7 @@ const TEMPLATE_ROOT = join(here, "..", "templates", "app-shell");
 // Fallback scaffolder. New-app scaffolding normally delegates to the
 // `scaffold-preact` skill; this reproduces its template output for when that
 // skill isn't installed. The template tree mirrors scaffold-preact's, plus
-// design-build's mandatory mock-data layer and the DESIGN/BUILD/COMPONENT_INDEX
+// build's mandatory mock-data layer and the DESIGN/BUILD/COMPONENT_INDEX
 // doc stubs.
 
 // Files shipped un-prefixed in the template that must be dot/relocated on output

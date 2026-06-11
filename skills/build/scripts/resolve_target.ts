@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join, dirname, resolve, parse } from "node:path";
 import { z } from "zod";
-import { findDesignMd } from "../../designer/lib/prompt_prep.ts";
+import { findDesignMd } from "../../design/lib/prompt_prep.ts";
 
 // "auto" lets detection decide; "new"/"extend" force the operation.
 export type BuildIntent = "auto" | "new" | "extend";

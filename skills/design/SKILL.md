@@ -1,9 +1,9 @@
 ---
-name: designer
+name: design
 description: Generate application-style design images via Midjourney (through a Discord bot you own). Run this skill when the user wants a set of reference design images for a UI — a login form, dashboard, checkout flow, etc. — described in natural language, optionally combined with project-specific rules in a DESIGN.md file. Produces a folder of images and metadata under ./designs/<request-name>/.
 ---
 
-# Designer skill
+# Design skill
 
 Turns a design brief into Midjourney images saved in a request-scoped folder.
 
@@ -12,7 +12,7 @@ Turns a design brief into Midjourney images saved in a request-scoped folder.
 If `~/.config/designer/config.json` does not exist, run setup before anything else:
 
 ```bash
-~/.claude/skills/designer/bin/designer setup
+~/.claude/skills/design/bin/designer setup
 ```
 
 You'll need: Discord bot token, guild ID, channel ID (where Midjourney lives). You'll also pick a **trigger mode**:
@@ -21,7 +21,7 @@ You'll need: Discord bot token, guild ID, channel ID (where Midjourney lives). Y
 
 ## Commands this skill exposes
 
-Use the `~/.claude/skills/designer/bin/designer` dispatcher — it works from any CWD. All subcommands that take JSON args print one JSON line to stdout on success, or stderr + non-zero exit on failure.
+Use the `~/.claude/skills/design/bin/designer` dispatcher — it works from any CWD. All subcommands that take JSON args print one JSON line to stdout on success, or stderr + non-zero exit on failure.
 
 | Command | Purpose |
 |---|---|

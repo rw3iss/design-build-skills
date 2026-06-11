@@ -1,4 +1,4 @@
-# design-build (Claude Code skill)
+# build (Claude Code skill)
 
 The gateway for building new pages and features into a Preact + TypeScript + SCSS
 app. It decides **what** to build, **where** (scaffold a new app vs. extend the
@@ -66,7 +66,7 @@ shared component/util/style in the README / CLAUDE.md.
 ## Reference images (optional)
 
 Supply images via a folder, explicit file paths, or indices from a prior
-`designer` run. Two follow modes:
+`design` run. Two follow modes:
 
 | Mode | When | What changes |
 |---|---|---|
@@ -97,7 +97,7 @@ export const apiClient: ApiClient = new HttpApiAdapter(import.meta.env.VITE_API_
 ## Output
 
 - **Extend:** new components/pages land in your existing app under its conventions.
-- **New:** the base app is scaffolded by delegating to the **`scaffold-preact`** skill (passing this project's `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` + the request), then design-build adds the mock-data layer and builds the requested feature into it.
+- **New:** the base app is scaffolded by delegating to the **`scaffold-preact`** skill (passing this project's `DESIGN.md` / `BUILD.md` / `COMPONENT_INDEX.md` + the request), then build adds the mock-data layer and builds the requested feature into it.
 - A regenerated `PLAN.md` (the per-build brief) is written to the app root and is gitignored.
 
 ---
@@ -113,7 +113,7 @@ export const apiClient: ApiClient = new HttpApiAdapter(import.meta.env.VITE_API_
 
 > New-app scaffolding delegates to the separate **`scaffold-preact`** skill, which
 > produces the Preact + TS + traditional-SCSS base (tabs, persisted UI-state
-> utility, optional client-side caching). design-build customizes the result with
+> utility, optional client-side caching). build customizes the result with
 > the project's design rules and the requested feature.
 
 See [`SKILL.md`](./SKILL.md) for the exact argument shapes.
@@ -133,6 +133,6 @@ See the [repo README](../../README.md#updating) for all methods.
 ## Running tests
 
 ```bash
-cd ~/.claude/skills/design-build
+cd ~/.claude/skills/build
 npm test
 ```

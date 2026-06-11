@@ -14,13 +14,13 @@
   "provides": [
     {
       "type": "skill",
-      "name": "designer",
-      "file": "skills/designer/SKILL.md"
+      "name": "design",
+      "file": "skills/design/SKILL.md"
     },
     {
       "type": "skill",
-      "name": "design-build",
-      "file": "skills/design-build/SKILL.md"
+      "name": "build",
+      "file": "skills/build/SKILL.md"
     }
   ]
 }
